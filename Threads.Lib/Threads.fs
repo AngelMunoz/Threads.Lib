@@ -3,157 +3,233 @@ namespace Threads.Lib.API
 open System.Threading
 open System.Threading.Tasks
 
-open FsToolkit.ErrorHandling
 
-type ThreadsClient =
-  // post endpoints
-  abstract postContainer:
+type PostService =
+  abstract PostContainer:
+    profileId: string *
     postParams: Threads.Lib.Posts.PostParam seq *
     ?cancellationToken: CancellationToken ->
-      TaskResult<
-        Threads.Lib.Posts.PostId,
-        Threads.Lib.Posts.SingleContainerError
-       >
+      Task<Threads.Lib.Posts.PostId>
 
-  abstract postCarousel:
+  abstract PostCarouselItemContainer:
+    profileId: string *
+    postParams: Threads.Lib.Posts.PostParam seq *
+    ?cancellationToken: CancellationToken ->
+      Task<Threads.Lib.Posts.PostId>
+
+  abstract PostCarousel:
+    profileId: string *
     children: Threads.Lib.Posts.PostId seq *
     ?textContent: string *
     ?cancellationToken: CancellationToken ->
-      TaskResult<
-        Threads.Lib.Posts.PostId,
-        Threads.Lib.Posts.CarouselContainerError
-       >
-
-  abstract publishPost:
-    containerId: string * ?cancellationToken: CancellationToken ->
       Task<Threads.Lib.Posts.PostId>
 
-  // media endpoints
-  abstract fetchThreads:
+  abstract PublishPost:
+    profileId: string *
+    containerId: Threads.Lib.Posts.PostId *
+    ?cancellationToken: CancellationToken ->
+      Task<Threads.Lib.Posts.PostId>
+
+type MediaService =
+  abstract FetchThreads:
+    profileId: string *
     ?fields: Threads.Lib.Media.ThreadField seq *
     ?pagination: Threads.Lib.PaginationKind *
     ?cancellationToken: CancellationToken ->
-      TaskResult<Threads.Lib.Media.ThreadListResponse, string>
+      Task<Threads.Lib.Media.ThreadListResponse>
 
-  abstract fetchThread:
+  abstract FetchThread:
     threadId: string *
     ?fields: Threads.Lib.Media.ThreadField seq *
     ?cancellationToken: CancellationToken ->
-      TaskResult<Threads.Lib.Media.ThreadValue seq, string>
-  // profile endpoints
-  abstract fetchProfile:
+      Task<Threads.Lib.Media.ThreadValue seq>
+
+type ProfileService =
+  abstract FetchProfile:
     profileId: string *
     ?profileFields: Threads.Lib.Profiles.ProfileField seq *
     ?cancelaltionToken: CancellationToken ->
-      TaskResult<Threads.Lib.Profiles.ProfileValue seq, string>
+      Task<Threads.Lib.Profiles.ProfileValue seq>
 
-  abstract fetchMe:
-    ?profileFields: Threads.Lib.Profiles.ProfileField seq *
-    ?cancelaltionToken: CancellationToken ->
-      TaskResult<Threads.Lib.Profiles.ProfileValue seq, string>
+
+type ThreadsClient =
+  inherit PostService
+  inherit MediaService
+  inherit ProfileService
 
 type ThreadClient =
-  static member create
-    (
-      accessToken: string,
-      ?baseUrl: string,
-      ?cancellationToken: CancellationToken
-    ) : Task<ThreadsClient> =
-    task {
-      let baseUrl = defaultArg baseUrl "https://graph.threads.net/v1.0/"
-      let token = defaultArg cancellationToken CancellationToken.None
 
-      let! profileId =
-        Threads.Lib.Profiles.getProfile baseUrl accessToken None [] token
-        |> TaskResult.map(fun value ->
-          match value |> Seq.head with
-          | Threads.Lib.Profiles.ProfileValue.Id value -> value
-          | _ -> failwith "no id present")
-        |> TaskResult.defaultWith(fun result -> failwith result)
+  static member Create(accessToken: string, ?baseUrl: string) : ThreadsClient =
+    let baseUrl = defaultArg baseUrl "https://graph.threads.net/v1.0/"
 
-      let fetchProfile = Threads.Lib.Profiles.getProfile baseUrl accessToken
-      let fetchThreads = Threads.Lib.Media.getThreads baseUrl accessToken
-      let fetchThread = Threads.Lib.Media.getThread baseUrl accessToken
+    let fetchProfile = Threads.Lib.Profiles.getProfile baseUrl accessToken
+    let fetchThreads = Threads.Lib.Media.getThreads baseUrl accessToken
+    let fetchThread = Threads.Lib.Media.getThread baseUrl accessToken
 
-      let postCarousel =
-        Threads.Lib.Posts.createCarouselContainer baseUrl accessToken profileId
+    let postCarousel =
+      Threads.Lib.Posts.createCarouselContainer baseUrl accessToken
 
-      let postSingle =
-        Threads.Lib.Posts.createSingleContainer baseUrl accessToken profileId
+    let postSingle = Threads.Lib.Posts.createSingleContainer baseUrl accessToken
 
-      let publishPost =
-        Threads.Lib.Posts.publishContainer baseUrl accessToken profileId
+    let postCarouselItem =
+      Threads.Lib.Posts.createCarouselItemContainer baseUrl accessToken
 
-      return
-        { new ThreadsClient with
-            member this.fetchMe
-              (
-                ?profileFields: Threads.Lib.Profiles.ProfileField seq,
-                ?cancellationToken: CancellationToken
-              ) : TaskResult<Threads.Lib.Profiles.ProfileValue seq, string> =
-              let profileFields = defaultArg profileFields []
-              let token = defaultArg cancellationToken CancellationToken.None
-              fetchProfile None profileFields token
+    let publishPost = Threads.Lib.Posts.publishContainer baseUrl accessToken
 
-            member _.fetchProfile
-              (
-                profileId: string,
-                ?profileFields: Threads.Lib.Profiles.ProfileField seq,
-                ?cancellationToken: CancellationToken
-              ) : TaskResult<Threads.Lib.Profiles.ProfileValue seq, string> =
-              let profileFields = defaultArg profileFields []
-              let token = defaultArg cancellationToken CancellationToken.None
-              fetchProfile (Some profileId) profileFields token
+    { new ThreadsClient with
 
-            member _.fetchThread
-              (
-                threadId: string,
-                ?fields: Threads.Lib.Media.ThreadField seq,
-                ?cancellationToken: CancellationToken
-              ) : TaskResult<Threads.Lib.Media.ThreadValue seq, string> =
-              let profileFields = defaultArg fields []
-              let token = defaultArg cancellationToken CancellationToken.None
-              fetchThread threadId profileFields token
+        member _.FetchProfile(profileId, ?profileFields, ?cancellationToken) =
+          let token = defaultArg cancellationToken CancellationToken.None
 
-            member _.fetchThreads
-              (
-                ?fields: Threads.Lib.Media.ThreadField seq,
-                ?pagination: Threads.Lib.PaginationKind,
-                ?cancellationToken: CancellationToken
-              ) : TaskResult<Threads.Lib.Media.ThreadListResponse, string> =
-              let profileFields = defaultArg fields []
-              let token = defaultArg cancellationToken CancellationToken.None
-              fetchThreads pagination profileFields token
+          let work = async {
+            let profileFields = defaultArg profileFields []
 
-            member _.postCarousel
-              (
-                children: Threads.Lib.Posts.PostId seq,
-                ?textContent: string,
-                ?cancellationToken: CancellationToken
-              ) : TaskResult<
-                    Threads.Lib.Posts.PostId,
-                    Threads.Lib.Posts.CarouselContainerError
-                   >
-              =
-              let token = defaultArg cancellationToken CancellationToken.None
-              postCarousel children textContent token
+            match! fetchProfile (Some profileId) profileFields with
+            | Ok result -> return result
+            | Error err -> return raise(exn err)
+          }
 
-            member _.postContainer
-              (
-                postParams: Threads.Lib.Posts.PostParam seq,
-                ?cancellationToken: CancellationToken
-              ) : TaskResult<
-                    Threads.Lib.Posts.PostId,
-                    Threads.Lib.Posts.SingleContainerError
-                   >
-              =
-              let token = defaultArg cancellationToken CancellationToken.None
-              postSingle postParams token
+          Async.StartAsTask(work, cancellationToken = token)
 
-            member _.publishPost
-              (containerId: string, ?cancellationToken: CancellationToken)
-              : Task<Threads.Lib.Posts.PostId> =
-              let token = defaultArg cancellationToken CancellationToken.None
-              publishPost { id = containerId } token
-        }
+        member _.FetchThread(threadId, ?fields, ?cancellationToken) =
+          let token = defaultArg cancellationToken CancellationToken.None
+
+          let work = async {
+            let profileFields = defaultArg fields []
+
+            match! fetchThread threadId profileFields with
+            | Ok result -> return result
+            | Error err -> return raise(exn err)
+          }
+
+          Async.StartAsTask(work, cancellationToken = token)
+
+        member _.FetchThreads
+          (profileId, ?fields, ?pagination, ?cancellationToken)
+          =
+          let token = defaultArg cancellationToken CancellationToken.None
+
+          let work = async {
+            let profileFields = defaultArg fields []
+
+            match! fetchThreads profileId pagination profileFields with
+            | Ok result -> return result
+            | Error err -> return raise(exn err)
+          }
+
+          Async.StartAsTask(work, cancellationToken = token)
+
+        member _.PostCarousel
+          (profileId, children, ?textContent, ?cancellationToken)
+          =
+          let token = defaultArg cancellationToken CancellationToken.None
+
+          let work = async {
+
+            match! postCarousel profileId children textContent with
+            | Ok value -> return value
+            | Error err ->
+              match err with
+              | Threads.Lib.Posts.CarouselContainerError.CarouselPostIsEmpty ->
+                return
+                  nameof(
+                    Threads.Lib.Posts.CarouselContainerError.CarouselPostIsEmpty
+                  )
+                  |> exn
+                  |> raise
+              | Threads.Lib.Posts.CarouselContainerError.MoreThan10Children ->
+                return
+                  nameof(
+                    Threads.Lib.Posts.CarouselContainerError.CarouselPostIsEmpty
+                  )
+                  |> exn
+                  |> raise
+          }
+
+          Async.StartAsTask(work, cancellationToken = token)
+
+        member _.PostContainer(profileId, postParams, ?cancellationToken) =
+          let token = defaultArg cancellationToken CancellationToken.None
+
+          let work = async {
+            match! postSingle profileId postParams with
+            | Ok value -> return value
+            | Error err ->
+              match err with
+              | Threads.Lib.Posts.SingleContainerError.IsCarouselInSingleContainer ->
+                return
+                  nameof(
+                    Threads.Lib.Posts.SingleContainerError.IsCarouselInSingleContainer
+                  )
+                  |> exn
+                  |> raise
+              | Threads.Lib.Posts.SingleContainerError.IsImageButImageNotProvided ->
+                return
+                  nameof(
+                    Threads.Lib.Posts.SingleContainerError.IsImageButImageNotProvided
+                  )
+                  |> exn
+                  |> raise
+              | Threads.Lib.Posts.SingleContainerError.IsTextButNoTextProvided ->
+                return
+                  nameof(
+                    Threads.Lib.Posts.SingleContainerError.IsTextButNoTextProvided
+                  )
+                  |> exn
+                  |> raise
+              | Threads.Lib.Posts.SingleContainerError.IsVideoButNoVideoProvided ->
+                return
+                  nameof(
+                    Threads.Lib.Posts.SingleContainerError.IsVideoButNoVideoProvided
+                  )
+                  |> exn
+                  |> raise
+          }
+
+          Async.StartAsTask(work, cancellationToken = token)
+
+        member _.PostCarouselItemContainer
+          (profileId, postParams, ?cancellationToken)
+          =
+          let token = defaultArg cancellationToken CancellationToken.None
+
+          let work = async {
+            match! postCarouselItem profileId postParams with
+            | Ok value -> return value
+            | Error err ->
+              match err with
+              | Threads.Lib.Posts.CarouselItemContainerError.IsImageButImageNotProvided ->
+                return
+                  nameof
+                    Threads.Lib.Posts.CarouselItemContainerError.IsImageButImageNotProvided
+                  |> exn
+                  |> raise
+              | Threads.Lib.Posts.CarouselItemContainerError.IsVideoButNoVideoProvided ->
+                return
+                  nameof
+                    Threads.Lib.Posts.CarouselItemContainerError.IsVideoButNoVideoProvided
+                  |> exn
+                  |> raise
+              | Threads.Lib.Posts.CarouselItemContainerError.MediaTypeMustbeVideoOrImage ->
+                return
+                  nameof
+                    Threads.Lib.Posts.CarouselItemContainerError.MediaTypeMustbeVideoOrImage
+                  |> exn
+                  |> raise
+          }
+
+          Async.StartAsTask(work, cancellationToken = token)
+
+        member _.PublishPost
+          (
+            profileId: string,
+            containerId: Threads.Lib.Posts.PostId,
+            ?cancellationToken: CancellationToken
+          ) : Task<Threads.Lib.Posts.PostId> =
+          let token = defaultArg cancellationToken CancellationToken.None
+
+          Async.StartAsTask(
+            publishPost profileId containerId,
+            cancellationToken = token
+          )
     }

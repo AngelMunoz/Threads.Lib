@@ -85,65 +85,57 @@ module Posts =
     | IsTextButNoTextProvided
 
 
-  let createSingleContainer
-    baseUrl
-    accessToken
-    userId
-    postParams
-    cancellationToken
-    =
-    taskResult {
-      let postParams =
+  let createSingleContainer baseUrl accessToken userId postParams = asyncResult {
+    let postParams =
+      postParams
+      |> Seq.filter(fun f ->
+        match f with
+        | CarouselItem -> false
+        | _ -> true)
+      |> Seq.toList
+
+    let mediaType = PostParam.extractMediaType postParams
+
+    match mediaType with
+    | Some Carousel -> do! Error IsCarouselInSingleContainer
+    | Some Image ->
+      do!
         postParams
-        |> Seq.filter(fun f ->
-          match f with
-          | CarouselItem -> false
-          | _ -> true)
-        |> Seq.toList
+        |> PostParam.extractImageUrl
+        |> Result.requireSome IsImageButImageNotProvided
+        |> Result.ignore
+    | Some Video ->
+      do!
+        postParams
+        |> PostParam.extractVideoUrl
+        |> Result.requireSome IsVideoButNoVideoProvided
+        |> Result.ignore
+    | Some MediaType.Text
+    | None ->
+      do!
+        postParams
+        |> PostParam.extractText
+        |> Result.requireSome IsTextButNoTextProvided
+        |> Result.ignore
 
-      let mediaType = PostParam.extractMediaType postParams
+    let postParams = postParams |> List.map PostParam.toStringTuple
 
-      match mediaType with
-      | Some Carousel -> do! Error IsCarouselInSingleContainer
-      | Some Image ->
-        do!
-          postParams
-          |> PostParam.extractImageUrl
-          |> Result.requireSome IsImageButImageNotProvided
-          |> Result.ignore
-      | Some Video ->
-        do!
-          postParams
-          |> PostParam.extractVideoUrl
-          |> Result.requireSome IsVideoButNoVideoProvided
-          |> Result.ignore
-      | Some MediaType.Text
-      | None ->
-        do!
-          postParams
-          |> PostParam.extractText
-          |> Result.requireSome IsTextButNoTextProvided
-          |> Result.ignore
+    let! req =
+      http {
+        POST $"%s{baseUrl}/%s{userId}/threads"
 
-      let postParams = postParams |> List.map PostParam.toStringTuple
+        query [
+          yield! postParams
+          "is_carousel_item", "false"
+          "access_token", accessToken
+        ]
+      }
+      |> Request.sendAsync
 
-      let! req =
-        http {
-          POST $"{baseUrl}/{userId}/threads"
+    let! (response: PostId) = req |> Response.deserializeJsonAsync
 
-          query [
-            yield! postParams
-            "is_carousel_item", "false"
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendTAsync
-
-      let! (response: PostId) =
-        req |> Response.deserializeJsonTAsync cancellationToken
-
-      return response
-    }
+    return response
+  }
 
   [<Struct>]
   type CarouselItemContainerError =
@@ -151,121 +143,95 @@ module Posts =
     | IsImageButImageNotProvided
     | IsVideoButNoVideoProvided
 
-  let createCarouselItemContainer
-    baseUrl
-    accessToken
-    userId
-    postParams
-    cancellationToken
-    =
-    taskResult {
-      let postParams =
+  let createCarouselItemContainer baseUrl accessToken userId postParams = asyncResult {
+    let postParams =
+      postParams
+      |> Seq.filter(fun f ->
+        match f with
+        | CarouselItem -> false
+        | _ -> true)
+      |> Seq.toList
+
+    let mediaType = PostParam.extractMediaType postParams
+
+    match mediaType with
+    | Some Carousel
+    | Some MediaType.Text
+    | None -> do! Error MediaTypeMustbeVideoOrImage
+    | Some Image ->
+      do!
         postParams
-        |> Seq.filter(fun f ->
-          match f with
-          | CarouselItem -> false
-          | _ -> true)
-        |> Seq.toList
+        |> PostParam.extractImageUrl
+        |> Result.requireSome IsImageButImageNotProvided
+        |> Result.ignore
+    | Some Video ->
+      do!
+        postParams
+        |> PostParam.extractVideoUrl
+        |> Result.requireSome IsVideoButNoVideoProvided
+        |> Result.ignore
 
-      let mediaType = PostParam.extractMediaType postParams
+    let postParams = postParams |> List.map PostParam.toStringTuple
 
-      match mediaType with
-      | Some Carousel
-      | Some MediaType.Text
-      | None -> do! Error MediaTypeMustbeVideoOrImage
-      | Some Image ->
-        do!
-          postParams
-          |> PostParam.extractImageUrl
-          |> Result.requireSome IsImageButImageNotProvided
-          |> Result.ignore
-      | Some Video ->
-        do!
-          postParams
-          |> PostParam.extractVideoUrl
-          |> Result.requireSome IsVideoButNoVideoProvided
-          |> Result.ignore
+    let! req =
+      http {
+        POST $"%s{baseUrl}/%s{userId}/threads"
 
-      let postParams = postParams |> List.map PostParam.toStringTuple
+        query [
+          yield! postParams
+          "is_carousel_item", "true"
+          "access_token", accessToken
+        ]
+      }
+      |> Request.sendAsync
 
-      let! req =
-        http {
-          POST $"{baseUrl}/{userId}/threads"
+    let! (response: PostId) = req |> Response.deserializeJsonAsync
 
-          query [
-            yield! postParams
-            "is_carousel_item", "true"
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendTAsync
-
-      let! (response: PostId) =
-        req |> Response.deserializeJsonTAsync cancellationToken
-
-      return response
-    }
+    return response
+  }
 
   [<Struct>]
   type CarouselContainerError =
     | MoreThan10Children
     | CarouselPostIsEmpty
 
-  let createCarouselContainer
-    baseUrl
-    accessToken
-    userId
-    children
-    textContent
-    cancellationToken
-    =
-    taskResult {
-      let children = children |> Seq.map _.id |> Seq.toList
+  let createCarouselContainer baseUrl accessToken userId children textContent = asyncResult {
+    let children = children |> Seq.map _.id |> Seq.toList
 
-      do! children.Length = 0 |> Result.requireFalse CarouselPostIsEmpty
-      do! children.Length > 10 |> Result.requireFalse MoreThan10Children
-      let children = String.Join(",", children)
+    do! children.Length = 0 |> Result.requireFalse CarouselPostIsEmpty
+    do! children.Length > 10 |> Result.requireFalse MoreThan10Children
+    let children = String.Join(",", children)
 
-      let! req =
-        http {
-          POST $"{baseUrl}/{userId}/threads"
+    let! req =
+      http {
+        POST $"%s{baseUrl}/%s{userId}/threads"
 
-          query [
-            "media_type", "CAROUSEL"
-            "children", children
-            match textContent with
-            | Some text -> "text", text
-            | None -> ()
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendTAsync
+        query [
+          "media_type", "CAROUSEL"
+          "children", children
+          match textContent with
+          | Some text -> "text", text
+          | None -> ()
+          "access_token", accessToken
+        ]
+      }
+      |> Request.sendAsync
 
-      let! (response: PostId) =
-        req |> Response.deserializeJsonTAsync cancellationToken
+    let! (response: PostId) = req |> Response.deserializeJsonAsync
 
-      return response
-    }
+    return response
+  }
 
+  let publishContainer baseUrl accessToken userId containerId = async {
+    let! req =
+      http {
+        POST $"%s{baseUrl}/%s{userId}/threads_publish"
 
-  let publishContainer
-    baseUrl
-    accessToken
-    userId
-    containerId
-    cancellationToken
-    =
-    task {
-      let! req =
-        http {
-          POST $"{baseUrl}/{userId}/threads_publish"
+        query [ "creation_id", containerId.id; "access_token", accessToken ]
+      }
+      |> Request.sendAsync
 
-          query [ "creation_id", containerId.id; "access_token", accessToken ]
-        }
-        |> Request.sendTAsync
+    let! (response: PostId) = req |> Response.deserializeJsonAsync
 
-      let! (response: PostId) =
-        req |> Response.deserializeJsonTAsync cancellationToken
-
-      return response
-    }
+    return response
+  }

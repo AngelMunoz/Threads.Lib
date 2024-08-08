@@ -73,7 +73,7 @@ module Profiles =
         |> decodeThreadsBiography
         |> finish)
 
-  let getProfile baseUrl accessToken profileId profileFields cancellationToken = task {
+  let getProfile baseUrl accessToken profileId profileFields = async {
     let fields =
       profileFields
       |> Seq.map ProfileField.asString
@@ -86,16 +86,16 @@ module Profiles =
 
     let! req =
       http {
-        GET $"{baseUrl}/{profileId}"
+        GET $"%s{baseUrl}/%s{profileId}"
 
         query [
           if String.IsNullOrEmpty fields then () else "field", fields
           "access_token", accessToken
         ]
       }
-      |> Request.sendTAsync
+      |> Request.sendAsync
 
-    let! res = Response.toTextTAsync cancellationToken req
+    let! res = Response.toTextAsync req
 
     return Decode.fromString ProfileValue.Decode res
   }

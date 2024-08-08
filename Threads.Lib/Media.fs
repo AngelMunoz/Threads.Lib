@@ -227,7 +227,7 @@ module Media =
         paging = get.Required.Field "paging" Pagination.Decode
       })
 
-  let getThreads baseUrl accessToken pagination threadFields cancellationToken = task {
+  let getThreads baseUrl accessToken profileId pagination threadFields = async {
     let fields =
       threadFields
       |> Seq.map ThreadField.asString
@@ -235,7 +235,7 @@ module Media =
 
     let! req =
       http {
-        GET $"{baseUrl}/threads"
+        GET $"%s{baseUrl}/%s{profileId}/threads"
 
         query [
           if String.IsNullOrEmpty fields then () else "field", fields
@@ -245,14 +245,14 @@ module Media =
           "access_token", accessToken
         ]
       }
-      |> Request.sendTAsync
+      |> Request.sendAsync
 
-    let! res = Response.toTextTAsync cancellationToken req
+    let! res = Response.toTextAsync req
 
     return Decode.fromString ThreadListResponse.Decode res
   }
 
-  let getThread baseUrl accessToken threadId threadFields cancellationToken = task {
+  let getThread baseUrl accessToken threadId threadFields = async {
     let fields =
       threadFields
       |> Seq.map ThreadField.asString
@@ -260,16 +260,16 @@ module Media =
 
     let! req =
       http {
-        GET $"{baseUrl}/threads/{threadId}"
+        GET $"%s{baseUrl}/threads/%s{threadId}"
 
         query [
           if String.IsNullOrEmpty fields then () else "field", fields
           "access_token", accessToken
         ]
       }
-      |> Request.sendTAsync
+      |> Request.sendAsync
 
-    let! res = Response.toTextTAsync cancellationToken req
+    let! res = Response.toTextAsync req
 
     return Decode.fromString ThreadValue.Decode res
   }
