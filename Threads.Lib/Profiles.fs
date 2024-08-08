@@ -89,7 +89,7 @@ module Profiles =
         GET $"%s{baseUrl}/%s{profileId}"
 
         query [
-          if String.IsNullOrEmpty fields then () else "field", fields
+          if String.IsNullOrEmpty fields then () else "fields", fields
           "access_token", accessToken
         ]
       }
