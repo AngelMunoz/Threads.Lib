@@ -9,20 +9,9 @@ open NXUI.FSharp.Extensions
 
 open Navs
 open Navs.Avalonia
+open Threads.Lib.API
 
-let routes = [
-  Route.define(
-    "guid",
-    "/:id<guid>",
-    fun context _ -> async {
-      return
-        match context.urlMatch.Params.TryGetValue "id" with
-        | true, id -> TextBlock().text($"%O{id}")
-        | false, _ -> TextBlock().text("Guid No GUID")
-    }
-  )
-  Route.define("books", "/books", (fun _ _ -> TextBlock().text("Books")))
-]
+
 
 let getMainContent(router: IRouter<Control>) =
   UserControl()
@@ -39,10 +28,16 @@ let navigate url (router: IRouter<Control>) _ _ =
   }
   |> Async.StartImmediate
 
-let app() =
+let app accessToken () =
+
+  let threads = ThreadClient.Create(accessToken)
 
   let router =
-    AvaloniaRouter(routes, splash = (fun _ -> TextBlock().text("Loading...")))
+    AvaloniaRouter(
+      Samples.Routes.getRoutes threads,
+      splash = (fun _ -> TextBlock().text("Loading..."))
+    )
+
 
   Window()
     .content(
@@ -54,7 +49,9 @@ let app() =
             .OrientationHorizontal()
             .spacing(8)
             .children(
-              Button().content("Books").OnClickHandler(navigate "/books" router),
+              Button()
+                .content("Profile")
+                .OnClickHandler(navigate "/profile" router),
               Button()
                 .content("Guid")
                 .OnClickHandler(navigate $"/{Guid.NewGuid()}" router)
@@ -63,5 +60,13 @@ let app() =
         )
     )
 
+let accessToken =
+  // we'd usually do the authentication dance
+  // but for sample purposes we can use a dev access token provided in the
+  // meda apps dashboard
+  Environment.GetEnvironmentVariable("THREADS_ACCESS_TOKEN")
+  |> Option.ofObj
+  |> Option.defaultValue ""
 
-NXUI.Run(app, "Navs.Avalonia!", Environment.GetCommandLineArgs()) |> ignore
+NXUI.Run(app accessToken, "Navs.Avalonia!", Environment.GetCommandLineArgs())
+|> ignore
