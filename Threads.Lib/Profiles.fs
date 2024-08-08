@@ -73,7 +73,7 @@ module Profiles =
         |> decodeThreadsBiography
         |> finish)
 
-  let getProfile baseUrl accessToken profileId profileFields = async {
+  let getProfile (baseHttp: HeaderContext) accessToken profileId profileFields = async {
     let fields =
       profileFields
       |> Seq.map ProfileField.asString
@@ -85,8 +85,8 @@ module Profiles =
       | None -> "me"
 
     let! req =
-      http {
-        GET $"%s{baseUrl}/%s{profileId}"
+      baseHttp {
+        GET $"%s{profileId}"
 
         query [
           if String.IsNullOrEmpty fields then () else "fields", fields

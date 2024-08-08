@@ -2,6 +2,7 @@ namespace Threads.Lib.API
 
 open System.Threading
 open System.Threading.Tasks
+open FsHttp
 
 
 type PostService =
@@ -61,8 +62,9 @@ type ThreadClient =
 
   static member Create(accessToken: string, ?baseUrl: string) : ThreadsClient =
     let baseUrl = defaultArg baseUrl "https://graph.threads.net/v1.0/"
+    let baseHttp = http { config_useBaseUrl baseUrl }
 
-    let fetchProfile = Threads.Lib.Profiles.getProfile baseUrl accessToken
+    let fetchProfile = Threads.Lib.Profiles.getProfile baseHttp accessToken
     let fetchThreads = Threads.Lib.Media.getThreads baseUrl accessToken
     let fetchThread = Threads.Lib.Media.getThread baseUrl accessToken
 
