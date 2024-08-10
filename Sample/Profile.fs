@@ -27,16 +27,30 @@ module Profile =
     username: string
     bio: string
     profilePicture: Uri option
-  } with
+  }
 
-    static member Default() = {
+  module UserProfile =
+    let Default() = {
       id = ""
       username = ""
       bio = ""
       profilePicture = None
     }
 
-
+    let FromValues values =
+      values
+      |> Seq.fold
+        (fun current next ->
+          match next with
+          | Id id -> { current with id = id }
+          | Username username -> { current with username = username }
+          | ThreadsBiography bio -> { current with bio = bio }
+          | ThreadsProfilePictureUrl profilePicture ->
+              {
+                current with
+                    profilePicture = Some profilePicture
+              })
+        (Default())
 
   type PageStatus =
     | Loading
@@ -52,7 +66,7 @@ module Profile =
       let! token = Async.CancellationToken
 
       let! response =
-        threads.FetchProfile(
+        threads.Profile.FetchProfile(
           "me",
           [
             ProfileField.Id
@@ -63,20 +77,7 @@ module Profile =
           token
         )
 
-      let record =
-        response
-        |> Seq.fold
-          (fun current next ->
-            match next with
-            | Id id -> { current with id = id }
-            | Username username -> { current with username = username }
-            | ThreadsBiography bio -> { current with bio = bio }
-            | ThreadsProfilePictureUrl profilePicture ->
-                {
-                  current with
-                      profilePicture = Some profilePicture
-                })
-          (UserProfile.Default())
+      let record = UserProfile.FromValues response
 
       profile.setValue(record)
       status.setValue(Idle)
@@ -107,27 +108,24 @@ module Profile =
       :> Control
   }
 
-  let page (threads: ThreadsClient) ctx _ =
+  let page (threads: ThreadsClient) ctx _ = async {
     let loadProfile = loadProfile threads
+    let status = cval(Loading)
 
-    async {
-      let status = cval(Loading)
+    let profile = cval(UserProfile.Default())
 
-      let profile = cval(UserProfile.Default())
+    let! token = Async.CancellationToken
 
-      let! token = Async.CancellationToken
+    Async.StartImmediate(loadProfile status profile, token)
 
-      Async.StartImmediate(loadProfile status profile, token)
+    let content =
+      adaptive {
+        match! status with
+        | Loading -> return loadingScreen()
+        | Idle -> return! profileSection profile
+      }
+      |> AVal.toBinding
 
-      return
-        UserControl()
-          .content(
-            adaptive {
-              match! status with
-              | Loading -> return loadingScreen()
-              | Idle -> return! profileSection profile
-            }
-            |> AVal.toBinding
-          )
+    return UserControl().content(content)
 
-    }
+  }

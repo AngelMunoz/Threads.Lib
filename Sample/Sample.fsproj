@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Profile.fs" />
+    <Compile Include="Threads.fs" />
     <Compile Include="Routes.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

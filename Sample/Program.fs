@@ -11,13 +11,6 @@ open Navs
 open Navs.Avalonia
 open Threads.Lib.API
 
-
-
-let getMainContent(router: IRouter<Control>) =
-  UserControl()
-    .DockTop()
-    .content(router.Content |> AVal.toBinding, BindingMode.OneWay)
-
 let navigate url (router: IRouter<Control>) _ _ =
   async {
     let! result = router.Navigate(url) |> Async.AwaitTask
@@ -50,11 +43,11 @@ let app accessToken () =
             .spacing(8)
             .children(
               Button()
-                .content("Profile")
+                .content("My Profile")
                 .OnClickHandler(navigate "/profile" router),
               Button()
-                .content("Guid")
-                .OnClickHandler(navigate $"/{Guid.NewGuid()}" router)
+                .content("My Threads")
+                .OnClickHandler(navigate $"/threads" router)
             ),
           RouterOutlet().router(router)
         )
