@@ -21,6 +21,19 @@ module Posts =
       | Video -> "VIDEO"
       | Carousel -> "CAROUSEL"
 
+  [<Struct>]
+  type ReplyAudience =
+    | Everyone
+    | AccountsYouFollow
+    | MentionedOnly
+
+  module ReplyAudience =
+    let asString =
+      function
+      | Everyone -> "everyone"
+      | AccountsYouFollow -> "accounts_you_follow"
+      | MentionedOnly -> "mentioned_only"
+
 
   type PostParam =
     | CarouselItem
@@ -28,6 +41,8 @@ module Posts =
     | MediaType of MediaType
     | VideoUrl of Uri
     | Text of string
+    | ReplyTo of string
+    | ReplyControl of ReplyAudience
 
   module PostParam =
     let toStringTuple =
@@ -37,6 +52,8 @@ module Posts =
       | MediaType media -> "media_type", MediaType.asString media
       | VideoUrl url -> "image_url", url.ToString()
       | Text text -> "text", text
+      | ReplyTo value -> "reply_to", value
+      | ReplyControl value -> "reply_control", ReplyAudience.asString value
 
     let extractCarousel values =
       values
