@@ -9,6 +9,7 @@
     <Compile Include="Media.fs" />
     <Compile Include="Profiles.fs" />
     <Compile Include="ReplyManagement.fs" />
+    <Compile Include="Insights.fs" />
     <Compile Include="Threads.fs" />
   </ItemGroup>
   <ItemGroup>

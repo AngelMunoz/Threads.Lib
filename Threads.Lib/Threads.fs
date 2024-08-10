@@ -92,8 +92,8 @@ type ThreadsClient =
 
 type ThreadClient =
 
-  static member Create(accessToken: string, ?baseUrl: string) : ThreadsClient =
-    let baseUrl = defaultArg baseUrl "https://graph.threads.net/v1.0/"
+  static member Create(accessToken: string) : ThreadsClient =
+    let baseUrl = "https://graph.threads.net/v1.0/"
 
     let fetchProfile = Profiles.getProfile baseUrl accessToken
 
