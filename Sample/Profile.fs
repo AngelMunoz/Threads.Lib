@@ -21,12 +21,13 @@ open Threads.Lib.API
 
 module Profile =
   open System
+  open System.Diagnostics
 
   type UserProfile = {
     id: string
     username: string
     bio: string
-    profilePicture: Uri option
+    profilePicture: Uri voption
   }
 
   module UserProfile =
@@ -34,7 +35,7 @@ module Profile =
       id = ""
       username = ""
       bio = ""
-      profilePicture = None
+      profilePicture = ValueNone
     }
 
     let FromValues values =
@@ -48,7 +49,7 @@ module Profile =
           | ThreadsProfilePictureUrl profilePicture ->
               {
                 current with
-                    profilePicture = Some profilePicture
+                    profilePicture = ValueSome profilePicture
               })
         (Default())
 
@@ -86,24 +87,62 @@ module Profile =
   let loadingScreen() =
     TextBlock().text("Loading...") :> Control
 
+  let profilePicture(source: IBinding) =
+    Border()
+      .cornerRadius(75)
+      .width(64)
+      .height(64)
+      .clipToBounds(true)
+      .child(Image().source(source).height(64).width(64))
+
+  let loadProfilePicture
+    (pfpUri, onLoaded: Avalonia.Media.Imaging.Bitmap -> unit)
+    =
+    async {
+      let! image =
+        match pfpUri |> ValueOption.map(fun uri -> uri) with
+        | ValueSome uri -> uri
+        | ValueNone -> Uri("https://via.placeholder.com/64")
+        |> Image.getBitmapFromUri
+
+      return onLoaded image
+    }
+    |> Async.StartImmediate
+
   let profileSection(profile: cval<UserProfile>) = adaptive {
     let! profile = profile
 
+    let source = cval ValueNone
+
+    loadProfilePicture(profile.profilePicture, ValueSome >> source.setValue)
+
+    let pfpSrc =
+      source
+      |> AVal.map (function
+        | ValueSome v -> v
+        | ValueNone -> null)
+      |> AVal.toBinding
+
     return
-      StackPanel()
-        .spacing(4.)
+      DockPanel()
+        .lastChildFill(true)
+        .maxHeight(150)
+        .VerticalAlignmentTop()
         .children(
+          profilePicture(pfpSrc).DockLeft().VerticalAlignmentTop().margin(8.),
           StackPanel()
-            .spacing(2.)
-            .OrientationHorizontal()
+            .DockTop()
+            .spacing(4.)
             .children(
-              TextBlock().text("Username: "),
-              TextBlock().text(profile.username)
-            ),
-          StackPanel()
-            .spacing(2.)
-            .OrientationHorizontal()
-            .children(TextBlock().text("Bio: "), TextBlock().text(profile.bio))
+              TextBlock()
+                .text($"@%s{profile.username}")
+                .OnTappedEvent(fun _ obs ->
+                  obs.Add(fun _ ->
+                    Debug.WriteLine(
+                      $"Clicked on %s{profile.username}, Let's visit!"
+                    ))),
+              ScrollViewer().content(TextBlock().text(profile.bio))
+            )
         )
       :> Control
   }

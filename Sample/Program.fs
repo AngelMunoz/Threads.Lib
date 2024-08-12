@@ -7,6 +7,8 @@ open Avalonia.Data
 open NXUI.Desktop
 open NXUI.FSharp.Extensions
 
+open SkiaSharp
+
 open Navs
 open Navs.Avalonia
 open Threads.Lib.API
@@ -32,26 +34,32 @@ let app accessToken () =
     )
 
 
-  Window()
-    .content(
-      DockPanel()
-        .lastChildFill(true)
-        .children(
-          StackPanel()
-            .DockTop()
-            .OrientationHorizontal()
-            .spacing(8)
-            .children(
-              Button()
-                .content("My Profile")
-                .OnClickHandler(navigate "/profile" router),
-              Button()
-                .content("My Threads")
-                .OnClickHandler(navigate $"/threads" router)
-            ),
-          RouterOutlet().router(router)
-        )
-    )
+
+  let window =
+    Window()
+      .content(
+        DockPanel()
+          .lastChildFill(true)
+          .children(
+            StackPanel()
+              .DockTop()
+              .OrientationHorizontal()
+              .spacing(8)
+              .children(
+                Button()
+                  .content("My Profile")
+                  .OnClickHandler(navigate "/profile" router),
+                Button()
+                  .content("My Threads")
+                  .OnClickHandler(navigate $"/threads" router)
+              ),
+            RouterOutlet().router(router)
+          )
+      )
+#if DEBUG
+  window.AttachDevTools()
+#endif
+  window
 
 let accessToken =
   // we'd usually do the authentication dance
