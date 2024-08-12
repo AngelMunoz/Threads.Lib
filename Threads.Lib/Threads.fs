@@ -65,18 +65,19 @@ type ThreadClient =
     let baseHttp = http { config_useBaseUrl baseUrl }
 
     let fetchProfile = Threads.Lib.Profiles.getProfile baseHttp accessToken
-    let fetchThreads = Threads.Lib.Media.getThreads baseUrl accessToken
-    let fetchThread = Threads.Lib.Media.getThread baseUrl accessToken
+    let fetchThreads = Threads.Lib.Media.getThreads baseHttp accessToken
+    let fetchThread = Threads.Lib.Media.getThread baseHttp accessToken
 
     let postCarousel =
-      Threads.Lib.Posts.createCarouselContainer baseUrl accessToken
+      Threads.Lib.Posts.createCarouselContainer baseHttp accessToken
 
-    let postSingle = Threads.Lib.Posts.createSingleContainer baseUrl accessToken
+    let postSingle =
+      Threads.Lib.Posts.createSingleContainer baseHttp accessToken
 
     let postCarouselItem =
-      Threads.Lib.Posts.createCarouselItemContainer baseUrl accessToken
+      Threads.Lib.Posts.createCarouselItemContainer baseHttp accessToken
 
-    let publishPost = Threads.Lib.Posts.publishContainer baseUrl accessToken
+    let publishPost = Threads.Lib.Posts.publishContainer baseHttp accessToken
 
     { new ThreadsClient with
 
