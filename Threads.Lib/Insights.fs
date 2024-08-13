@@ -2,6 +2,7 @@ namespace Threads.Lib
 
 open System
 
+open FsToolkit.ErrorHandling
 open Thoth.Json.Net
 open FsHttp
 
@@ -25,6 +26,8 @@ module Insights =
     | Replies
     | Reposts
     | Quotes
+    | FollowerCount
+    | FollowerDemographics
 
   module Metric =
     let asString =
@@ -34,6 +37,8 @@ module Insights =
       | Replies -> "replies"
       | Reposts -> "reposts"
       | Quotes -> "quotes"
+      | FollowerCount -> "follower_count"
+      | FollowerDemographics -> "follower_demographics"
 
     let Decode: Decoder<Metric> =
       fun path jsonValue ->
@@ -74,27 +79,40 @@ module Insights =
           | None -> ValueNone
       })
 
-  type MediaMetric = {
-    name: Metric
-    period: Period
-    values: MetricValue array
-    title: string
-    description: string
-    id: string
-  }
+  type MediaMetric =
+    | Name of Metric
+    | Period of Period
+    | Values of MetricValue array
+    | Title of string
+    | Description of string
+    | Id of string
+    | TotalValue of uint
+
 
   module MediaMetric =
-    let Decode: Decoder<MediaMetric> =
-      Decode.object(fun get -> {
-        id = get.Required.Field "id" Decode.string
-        description = get.Required.Field "id" Decode.string
-        title = get.Required.Field "id" Decode.string
-        values = get.Required.Field "values" (Decode.array MetricValue.Decode)
-        period = get.Required.Field "period" Period.Decode
-        name = get.Required.Field "name" Metric.Decode
-      })
 
-  type MetricResponse = { data: MediaMetric array }
+    let decodeTotalValue: Decoder<uint> =
+      Decode.object(fun get -> get.Required.Field "total_value" Decode.uint32)
+
+    let Decode: Decoder<MediaMetric array> =
+      Decode.object(fun get -> [|
+        get.Required.Field "name" Metric.Decode |> Name
+        get.Required.Field "period" Period.Decode |> Period
+        get.Required.Field "title" Decode.string |> Title
+        get.Required.Field "description" Decode.string |> Description
+        get.Required.Field "id" Decode.string |> Id
+        match
+          get.Optional.Field "values" (Decode.array MetricValue.Decode)
+        with
+        | Some v -> Values v
+        | None -> ()
+
+        match get.Optional.Field "total_value" decodeTotalValue with
+        | Some v -> TotalValue v
+        | None -> ()
+      |])
+
+  type MetricResponse = { data: MediaMetric array array }
 
   module MediaMetricResponse =
 
@@ -102,3 +120,145 @@ module Insights =
       Decode.object(fun get -> {
         data = get.Required.Field "data" (Decode.array MediaMetric.Decode)
       })
+
+  [<Struct>]
+  type InsightParam =
+    | Since of since: DateTimeOffset
+    | Until of until: DateTimeOffset
+
+  let getMediaInsights baseUrl accessToken mediaId metrics = async {
+    let! req =
+      http {
+        GET $"%s{baseUrl}/%s{mediaId}/threads_insights"
+
+        query [
+          "metric", String.Join(",", Array.map Metric.asString metrics)
+          "access_token", accessToken
+        ]
+      }
+      |> Request.sendAsync
+
+    let! res = Response.toTextAsync req
+
+    return Decode.fromString MediaMetricResponse.Decode res
+  }
+
+  type InsightError =
+    | DateTooEarly
+    | SerializationError of string
+
+
+  let getUserInsights baseUrl accessToken userId metrics insightParams = asyncResult {
+    let insightParams = Array.ofSeq insightParams
+
+    let extractSince insightParams =
+      insightParams
+      |> Array.tryPick (function
+        | Since since -> Some since
+        | _ -> None)
+
+    let extractUntil insightParams =
+      insightParams
+      |> Array.tryPick (function
+        | Until until -> Some until
+        | _ -> None)
+
+    let mustBeHigherThan(currentDate: DateTimeOffset) =
+      if currentDate.ToUnixTimeSeconds() < 1712991600 then
+        None
+      else
+        Some()
+
+    let since = extractSince insightParams
+    let until = extractUntil insightParams
+
+    match since with
+    | Some since ->
+      do! mustBeHigherThan since |> Result.requireSome DateTooEarly
+    | None -> ()
+
+    match until with
+    | Some until ->
+      do! mustBeHigherThan until |> Result.requireSome DateTooEarly
+    | None -> ()
+
+    let! req =
+      http {
+        GET $"%s{baseUrl}/%s{userId}/threads_insights"
+
+        query [
+          "metric", String.Join(",", Array.map Metric.asString metrics)
+          yield!
+            insightParams
+            |> Array.map (function
+              | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
+              | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}")
+          "access_token", accessToken
+        ]
+      }
+      |> Request.sendAsync
+
+    let! res = Response.toTextAsync req
+
+    return!
+      Decode.fromString MediaMetricResponse.Decode res
+      |> Result.mapError SerializationError
+  }
+
+  let getUserMetrics baseUrl accessToken userId metrics insightParams = asyncResult {
+    let insightParams = Array.ofSeq insightParams
+
+    let extractSince insightParams =
+      insightParams
+      |> Array.tryPick (function
+        | Since since -> Some since
+        | _ -> None)
+
+    let extractUntil insightParams =
+      insightParams
+      |> Array.tryPick (function
+        | Until until -> Some until
+        | _ -> None)
+
+    let mustBeHigherThan(currentDate: DateTimeOffset) =
+
+      if currentDate.ToUnixTimeSeconds() < 1712991600 then
+        None
+      else
+        Some()
+
+    let since = extractSince insightParams
+    let until = extractUntil insightParams
+
+    match since with
+    | Some since ->
+      do! mustBeHigherThan since |> Result.requireSome DateTooEarly
+    | None -> ()
+
+    match until with
+    | Some until ->
+      do! mustBeHigherThan until |> Result.requireSome DateTooEarly
+    | None -> ()
+
+    let! req =
+      http {
+        GET $"%s{baseUrl}/%s{userId}/threads_insights"
+
+        query [
+          "metric", String.Join(",", Array.map Metric.asString metrics)
+          yield!
+            insightParams
+            |> Array.map (function
+              | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
+              | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}")
+          "access_token", accessToken
+        ]
+      }
+      |> Request.sendAsync
+
+    let! res = Response.toTextAsync req
+
+    return!
+      Decode.fromString MediaMetricResponse.Decode res
+      |> Result.mapError SerializationError
+  }
