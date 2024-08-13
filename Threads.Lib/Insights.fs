@@ -19,6 +19,12 @@ module Decode =
 
 module Insights =
 
+  type DemographicBreakdown =
+    | Country of string
+    | City of string
+    | Age of uint
+    | Gender of string
+
   [<Struct>]
   type Metric =
     | Views
@@ -125,14 +131,16 @@ module Insights =
   type InsightParam =
     | Since of since: DateTimeOffset
     | Until of until: DateTimeOffset
+    | Breakdown of demographicBreakdown: DemographicBreakdown
 
-  let getMediaInsights baseUrl accessToken mediaId metrics = async {
+  let getMediaInsights baseUrl accessToken mediaId (metrics: Metric array) = async {
     let! req =
       http {
         GET $"%s{baseUrl}/%s{mediaId}/threads_insights"
 
         query [
-          "metric", String.Join(",", Array.map Metric.asString metrics)
+          if metrics.Length > 0 then
+            "metric", String.Join(",", Array.map Metric.asString metrics)
           "access_token", accessToken
         ]
       }
@@ -146,119 +154,93 @@ module Insights =
   type InsightError =
     | DateTooEarly
     | SerializationError of string
+    | FollowerDemographicsMustIncludeBreakdown
 
+  let getUserInsights
+    baseUrl
+    accessToken
+    userId
+    (metrics: Metric array)
+    insightParams
+    =
+    asyncResult {
+      let insightParams = Array.ofSeq insightParams
 
-  let getUserInsights baseUrl accessToken userId metrics insightParams = asyncResult {
-    let insightParams = Array.ofSeq insightParams
+      let extractSince insightParams =
+        insightParams
+        |> Array.tryPick (function
+          | Since since -> Some since
+          | _ -> None)
 
-    let extractSince insightParams =
-      insightParams
-      |> Array.tryPick (function
-        | Since since -> Some since
-        | _ -> None)
+      let extractUntil insightParams =
+        insightParams
+        |> Array.tryPick (function
+          | Until until -> Some until
+          | _ -> None)
 
-    let extractUntil insightParams =
-      insightParams
-      |> Array.tryPick (function
-        | Until until -> Some until
-        | _ -> None)
+      let extractBreakdown insightParams =
+        insightParams
+        |> Array.tryPick (function
+          | Breakdown breakdown -> Some breakdown
+          | _ -> None)
 
-    let mustBeHigherThan(currentDate: DateTimeOffset) =
-      if currentDate.ToUnixTimeSeconds() < 1712991600 then
-        None
-      else
-        Some()
+      let extractFollowerDemographics metrics =
+        metrics
+        |> Array.tryPick (function
+          | FollowerDemographics -> Some FollowerDemographics
+          | _ -> None)
 
-    let since = extractSince insightParams
-    let until = extractUntil insightParams
+      let mustBeHigherThan(currentDate: DateTimeOffset) =
+        if currentDate.ToUnixTimeSeconds() < 1712991600 then
+          None
+        else
+          Some()
 
-    match since with
-    | Some since ->
-      do! mustBeHigherThan since |> Result.requireSome DateTooEarly
-    | None -> ()
+      let since = extractSince insightParams
+      let until = extractUntil insightParams
 
-    match until with
-    | Some until ->
-      do! mustBeHigherThan until |> Result.requireSome DateTooEarly
-    | None -> ()
+      match since with
+      | Some since ->
+        do! mustBeHigherThan since |> Result.requireSome DateTooEarly
+      | None -> ()
 
-    let! req =
-      http {
-        GET $"%s{baseUrl}/%s{userId}/threads_insights"
+      match until with
+      | Some until ->
+        do! mustBeHigherThan until |> Result.requireSome DateTooEarly
+      | None -> ()
 
-        query [
-          "metric", String.Join(",", Array.map Metric.asString metrics)
-          yield!
-            insightParams
-            |> Array.map (function
-              | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
-              | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}")
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+      match extractFollowerDemographics metrics with
+      | Some FollowerDemographics ->
+        do!
+          extractBreakdown insightParams
+          |> Result.requireSome FollowerDemographicsMustIncludeBreakdown
+          |> Result.ignore
+      | _ -> ()
 
-    let! res = Response.toTextAsync req
+      let! req =
+        http {
+          GET $"%s{baseUrl}/%s{userId}/threads_insights"
 
-    return!
-      Decode.fromString MediaMetricResponse.Decode res
-      |> Result.mapError SerializationError
-  }
+          query [
+            if metrics.Length > 0 then
+              "metric", String.Join(",", Array.map Metric.asString metrics)
+            yield!
+              insightParams
+              |> Array.map (function
+                | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
+                | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}"
+                | Breakdown(Country value) -> "breakdown", value
+                | Breakdown(City value) -> "breakdown", value
+                | Breakdown(Age value) -> "breakdown", $"%i{value}"
+                | Breakdown(Gender value) -> "breakdown", value)
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
 
-  let getUserMetrics baseUrl accessToken userId metrics insightParams = asyncResult {
-    let insightParams = Array.ofSeq insightParams
+      let! res = Response.toTextAsync req
 
-    let extractSince insightParams =
-      insightParams
-      |> Array.tryPick (function
-        | Since since -> Some since
-        | _ -> None)
-
-    let extractUntil insightParams =
-      insightParams
-      |> Array.tryPick (function
-        | Until until -> Some until
-        | _ -> None)
-
-    let mustBeHigherThan(currentDate: DateTimeOffset) =
-
-      if currentDate.ToUnixTimeSeconds() < 1712991600 then
-        None
-      else
-        Some()
-
-    let since = extractSince insightParams
-    let until = extractUntil insightParams
-
-    match since with
-    | Some since ->
-      do! mustBeHigherThan since |> Result.requireSome DateTooEarly
-    | None -> ()
-
-    match until with
-    | Some until ->
-      do! mustBeHigherThan until |> Result.requireSome DateTooEarly
-    | None -> ()
-
-    let! req =
-      http {
-        GET $"%s{baseUrl}/%s{userId}/threads_insights"
-
-        query [
-          "metric", String.Join(",", Array.map Metric.asString metrics)
-          yield!
-            insightParams
-            |> Array.map (function
-              | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
-              | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}")
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
-
-    let! res = Response.toTextAsync req
-
-    return!
-      Decode.fromString MediaMetricResponse.Decode res
-      |> Result.mapError SerializationError
-  }
+      return!
+        Decode.fromString MediaMetricResponse.Decode res
+        |> Result.mapError SerializationError
+    }
