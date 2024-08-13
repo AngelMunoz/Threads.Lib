@@ -4,12 +4,19 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Pagination.fsi" />
     <Compile Include="Pagination.fs" />
+    <Compile Include="Posts.fsi" />
     <Compile Include="Posts.fs" />
+    <Compile Include="Media.fsi" />
     <Compile Include="Media.fs" />
+    <Compile Include="Profiles.fsi" />
     <Compile Include="Profiles.fs" />
+    <Compile Include="ReplyManagement.fsi" />
     <Compile Include="ReplyManagement.fs" />
+    <Compile Include="Insights.fsi" />
     <Compile Include="Insights.fs" />
+    <Compile Include="Threads.fsi" />
     <Compile Include="Threads.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -2,6 +2,7 @@ namespace Threads.Lib.API
 
 open System.Threading
 open System.Threading.Tasks
+open System.Runtime.InteropServices
 
 open Threads.Lib
 
@@ -9,92 +10,94 @@ type InsightsService =
   abstract FetchMediaInsights:
     mediaId: string *
     metrics: Insights.Metric seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Insights.MetricResponse>
 
   abstract FetchUserInsights:
     userId: string *
     metrics: Insights.Metric seq *
     insightParams: Insights.InsightParam seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Insights.MetricResponse>
 
 type ReplyManagementService =
   abstract FetchRateLimits:
     userId: string *
-    ?fields: ReplyManagement.RateLimitField seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?fields: ReplyManagement.RateLimitField seq *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.RateLimitResponse>
 
   abstract FetchReplies:
     mediaId: string *
-    ?fields: ReplyManagement.ReplyField seq *
-    ?reverse: bool *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?fields: ReplyManagement.ReplyField seq *
+    [<OptionalAttribute>] ?reverse: bool *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
   abstract FetchConversation:
     mediaId: string *
-    ?fields: ReplyManagement.ReplyField seq *
-    ?reverse: bool *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?fields: ReplyManagement.ReplyField seq *
+    [<OptionalAttribute>] ?reverse: bool *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
   abstract FetchUserReplies:
     userId: string *
-    ?fields: ReplyManagement.ReplyField seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?fields: ReplyManagement.ReplyField seq *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
   abstract ManageReply:
-    replyId: string * shouldHide: bool * ?cancellationToken: CancellationToken ->
+    replyId: string *
+    shouldHide: bool *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<bool>
 
 type PostService =
   abstract PostContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
   abstract PostCarouselItemContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
   abstract PostCarousel:
     profileId: string *
     children: Posts.PostId seq *
-    ?textContent: string *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?textContent: string *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
   abstract PublishPost:
     profileId: string *
     containerId: Posts.PostId *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
 type MediaService =
   abstract FetchThreads:
     profileId: string *
-    ?fields: Media.ThreadField seq *
-    ?pagination: PaginationKind *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?fields: Media.ThreadField seq *
+    [<OptionalAttribute>] ?pagination: PaginationKind *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Media.ThreadListResponse>
 
   abstract FetchThread:
     threadId: string *
-    ?fields: Media.ThreadField seq *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?fields: Media.ThreadField seq *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task<Media.ThreadValue seq>
 
 type ProfileService =
   abstract FetchProfile:
     profileId: string *
-    ?profileFields: Profiles.ProfileField seq *
-    ?cancelaltionToken: CancellationToken ->
+    [<OptionalAttribute>] ?profileFields: Profiles.ProfileField seq *
+    [<OptionalAttribute>] ?cancelaltionToken: CancellationToken ->
       Task<Profiles.ProfileValue seq>
 
 
@@ -109,7 +112,12 @@ type ThreadsClient =
 module ThreadsClient =
   let getProfileService fetchProfile =
     { new ProfileService with
-        member _.FetchProfile(profileId, ?profileFields, ?cancellationToken) =
+        member _.FetchProfile
+          (
+            profileId,
+            [<OptionalAttribute>] ?profileFields,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
 
           let work = async {
             let profileFields = defaultArg profileFields []
@@ -128,7 +136,12 @@ module ThreadsClient =
   let getMediaService fetchThread fetchThreads =
     { new MediaService with
 
-        member _.FetchThread(threadId, ?fields, ?cancellationToken) =
+        member _.FetchThread
+          (
+            threadId,
+            [<OptionalAttribute>] ?fields,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
 
           let work = async {
             let profileFields = defaultArg fields []
@@ -144,8 +157,12 @@ module ThreadsClient =
           )
 
         member _.FetchThreads
-          (profileId, ?fields, ?pagination, ?cancellationToken)
-          =
+          (
+            profileId,
+            [<OptionalAttribute>] ?fields,
+            [<OptionalAttribute>] ?pagination,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
 
           let work = async {
             let profileFields = defaultArg fields []
@@ -164,8 +181,12 @@ module ThreadsClient =
   let getPostService postCarousel postSingle postCarouselItem publishPost =
     { new PostService with
         member _.PostCarousel
-          (profileId, children, ?textContent, ?cancellationToken)
-          =
+          (
+            profileId,
+            children,
+            [<OptionalAttribute>] ?textContent,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
 
           let work = async {
 
@@ -190,7 +211,9 @@ module ThreadsClient =
             ?cancellationToken = cancellationToken
           )
 
-        member _.PostContainer(profileId, postParams, ?cancellationToken) =
+        member _.PostContainer
+          (profileId, postParams, [<OptionalAttribute>] ?cancellationToken)
+          =
 
           let work = async {
             match! postSingle profileId postParams with
@@ -225,7 +248,7 @@ module ThreadsClient =
           )
 
         member _.PostCarouselItemContainer
-          (profileId, postParams, ?cancellationToken)
+          (profileId, postParams, [<OptionalAttribute>] ?cancellationToken)
           =
 
           let work = async {
@@ -262,7 +285,7 @@ module ThreadsClient =
           (
             profileId: string,
             containerId: Posts.PostId,
-            ?cancellationToken: CancellationToken
+            [<OptionalAttribute>] ?cancellationToken: CancellationToken
           ) : Task<Posts.PostId> =
 
           Async.StartImmediateAsTask(
@@ -280,8 +303,12 @@ module ThreadsClient =
     =
     { new ReplyManagementService with
         member _.FetchConversation
-          (mediaId, ?fields, ?reverse, ?cancellationToken)
-          =
+          (
+            mediaId,
+            [<OptionalAttribute>] ?fields,
+            [<OptionalAttribute>] ?reverse,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
           let reverse = defaultArg reverse false
           let fields = defaultArg fields Seq.empty
 
@@ -297,7 +324,12 @@ module ThreadsClient =
           )
 
 
-        member _.FetchRateLimits(userId, ?fields, ?cancellationToken) =
+        member _.FetchRateLimits
+          (
+            userId,
+            [<OptionalAttribute>] ?fields,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
           let fields = defaultArg fields Seq.empty
 
           let work = async {
@@ -312,7 +344,13 @@ module ThreadsClient =
           )
 
 
-        member _.FetchReplies(mediaId, ?fields, ?reverse, ?cancellationToken) =
+        member _.FetchReplies
+          (
+            mediaId,
+            [<OptionalAttribute>] ?fields,
+            [<OptionalAttribute>] ?reverse,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
           let fields = defaultArg fields Seq.empty
           let reverse = defaultArg reverse false
 
@@ -327,7 +365,12 @@ module ThreadsClient =
             ?cancellationToken = cancellationToken
           )
 
-        member _.FetchUserReplies(userId, ?fields, ?cancellationToken) =
+        member _.FetchUserReplies
+          (
+            userId,
+            [<OptionalAttribute>] ?fields,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
           let fields = defaultArg fields Seq.empty
 
           let work = async {
@@ -341,7 +384,9 @@ module ThreadsClient =
             ?cancellationToken = cancellationToken
           )
 
-        member _.ManageReply(replyId, shouldHide, ?cancellationToken) =
+        member _.ManageReply
+          (replyId, shouldHide, [<OptionalAttribute>] ?cancellationToken)
+          =
           Async.StartImmediateAsTask(
             manageReply replyId shouldHide,
             ?cancellationToken = cancellationToken
@@ -350,7 +395,9 @@ module ThreadsClient =
 
   let getInsights fetchUserInsights fetchMediaInsights =
     { new InsightsService with
-        member _.FetchMediaInsights(mediaId, metrics, ?cancellationToken) =
+        member _.FetchMediaInsights
+          (mediaId, metrics, [<OptionalAttribute>] ?cancellationToken)
+          =
           let metrics = metrics |> Seq.toArray
           let token = defaultArg cancellationToken CancellationToken.None
 
@@ -363,8 +410,12 @@ module ThreadsClient =
           Async.StartImmediateAsTask(work, cancellationToken = token)
 
         member _.FetchUserInsights
-          (userId, metrics, insightParams, ?cancellationToken)
-          =
+          (
+            userId,
+            metrics,
+            insightParams,
+            [<OptionalAttribute>] ?cancellationToken
+          ) =
           let metrics = metrics |> Seq.toArray
           let insightParams = insightParams |> Seq.toArray
           let token = defaultArg cancellationToken CancellationToken.None
