@@ -3,7 +3,6 @@ namespace Threads.Lib
 open System
 
 open FsHttp
-open Thoth.Json.Net
 
 module Profiles =
   [<Struct>]
@@ -20,7 +19,7 @@ module Profiles =
     | ThreadsBiography of string
 
   val internal getProfile:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     profileId: string option ->
     profileFields: ProfileField seq ->

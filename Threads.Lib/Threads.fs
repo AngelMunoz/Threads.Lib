@@ -1,7 +1,8 @@
-namespace Threads.Lib.API
+namespace Threads.Lib
 
 open System.Threading
 open System.Threading.Tasks
+open FsHttp
 open System.Runtime.InteropServices
 
 open Threads.Lib
@@ -109,7 +110,7 @@ type ThreadsClient =
   abstract Insights: InsightsService
 
 
-module ThreadsClient =
+module Impl =
   let getProfileService fetchProfile =
     { new ProfileService with
         member _.FetchProfile
@@ -441,50 +442,53 @@ module ThreadsClient =
     }
 
 
-type ThreadClient =
+[<Class>]
+type Threads =
+  static member Create
+    (accessToken, [<OptionalAttribute>] ?headerContext: HeaderContext) =
 
-  static member Create(accessToken: string) : ThreadsClient =
-    let baseUrl = "https://graph.threads.net/v1.0/"
+    let baseHttp =
+      defaultArg
+        headerContext
+        (http { config_useBaseUrl "https://graph.threads.net/v1.0/" })
 
-    let fetchProfile = Profiles.getProfile baseUrl accessToken
+    let fetchProfile = Profiles.getProfile baseHttp accessToken
 
-    let fetchThreads = Media.getThreads baseUrl accessToken
-    let fetchThread = Media.getThread baseUrl accessToken
+    let fetchThreads = Media.getThreads baseHttp accessToken
+    let fetchThread = Media.getThread baseHttp accessToken
 
-    let postSingle = Posts.createSingleContainer baseUrl accessToken
-    let postCarouselItem = Posts.createCarouselItemContainer baseUrl accessToken
-    let postCarousel = Posts.createCarouselContainer baseUrl accessToken
-    let publishPost = Posts.publishContainer baseUrl accessToken
+    let postSingle = Posts.createSingleContainer baseHttp accessToken
 
-    let fetchRateLimits = ReplyManagement.getRateLimits baseUrl accessToken
-    let fetchReplies = ReplyManagement.getReplies baseUrl accessToken
-    let fetchConvos = ReplyManagement.getConversations baseUrl accessToken
-    let allUserReplies = ReplyManagement.getUserReplies baseUrl accessToken
-    let manageReply = ReplyManagement.manageReply baseUrl accessToken
+    let postCarouselItem =
+      Posts.createCarouselItemContainer baseHttp accessToken
 
-    let fetchUserInsights = Insights.getUserInsights baseUrl accessToken
-    let fetchMediaInsights = Insights.getMediaInsights baseUrl accessToken
+    let postCarousel = Posts.createCarouselContainer baseHttp accessToken
+    let publishPost = Posts.publishContainer baseHttp accessToken
 
-    let profile = ThreadsClient.getProfileService fetchProfile
-    let media = ThreadsClient.getMediaService fetchThread fetchThreads
+    let fetchRateLimits = ReplyManagement.getRateLimits baseHttp accessToken
+    let fetchReplies = ReplyManagement.getReplies baseHttp accessToken
+    let fetchConvos = ReplyManagement.getConversations baseHttp accessToken
+    let allUserReplies = ReplyManagement.getUserReplies baseHttp accessToken
+    let manageReply = ReplyManagement.manageReply baseHttp accessToken
+
+    let fetchUserInsights = Insights.getUserInsights baseHttp accessToken
+    let fetchMediaInsights = Insights.getMediaInsights baseHttp accessToken
+
+    let profile = Impl.getProfileService fetchProfile
+    let media = Impl.getMediaService fetchThread fetchThreads
 
     let posts =
-      ThreadsClient.getPostService
-        postCarousel
-        postSingle
-        postCarouselItem
-        publishPost
+      Impl.getPostService postCarousel postSingle postCarouselItem publishPost
 
     let replies =
-      ThreadsClient.getReplyManagement
+      Impl.getReplyManagement
         manageReply
         fetchRateLimits
         fetchConvos
         fetchReplies
         allUserReplies
 
-    let insights =
-      ThreadsClient.getInsights fetchUserInsights fetchMediaInsights
+    let insights = Impl.getInsights fetchUserInsights fetchMediaInsights
 
     { new ThreadsClient with
         member _.Media = media
