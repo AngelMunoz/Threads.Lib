@@ -1,4 +1,4 @@
-namespace Threads.Lib.API
+namespace Threads.Lib
 
 open System.Threading
 open System.Threading.Tasks
@@ -107,6 +107,6 @@ type ThreadsClient =
   abstract Replies: ReplyManagementService
   abstract Insights: InsightsService
 
-[<Class>]
-type ThreadClient =
-  static member Create: accessToken: string -> ThreadsClient
+module ThreadsClient =
+  [<CompiledName "Create">]
+  val create: accessToken: string -> ThreadsClient

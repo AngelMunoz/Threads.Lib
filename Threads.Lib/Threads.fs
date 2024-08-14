@@ -1,10 +1,8 @@
-namespace Threads.Lib.API
+namespace Threads.Lib
 
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
-
-open Threads.Lib
 
 type InsightsService =
   abstract FetchMediaInsights:
@@ -109,7 +107,7 @@ type ThreadsClient =
   abstract Insights: InsightsService
 
 
-module ThreadsClient =
+module Impl =
   let getProfileService fetchProfile =
     { new ProfileService with
         member _.FetchProfile
@@ -441,9 +439,10 @@ module ThreadsClient =
     }
 
 
-type ThreadClient =
+module ThreadsClient =
 
-  static member Create(accessToken: string) : ThreadsClient =
+  [<CompiledName "Create">]
+  let create accessToken =
     let baseUrl = "https://graph.threads.net/v1.0/"
 
     let fetchProfile = Profiles.getProfile baseUrl accessToken
@@ -465,26 +464,21 @@ type ThreadClient =
     let fetchUserInsights = Insights.getUserInsights baseUrl accessToken
     let fetchMediaInsights = Insights.getMediaInsights baseUrl accessToken
 
-    let profile = ThreadsClient.getProfileService fetchProfile
-    let media = ThreadsClient.getMediaService fetchThread fetchThreads
+    let profile = Impl.getProfileService fetchProfile
+    let media = Impl.getMediaService fetchThread fetchThreads
 
     let posts =
-      ThreadsClient.getPostService
-        postCarousel
-        postSingle
-        postCarouselItem
-        publishPost
+      Impl.getPostService postCarousel postSingle postCarouselItem publishPost
 
     let replies =
-      ThreadsClient.getReplyManagement
+      Impl.getReplyManagement
         manageReply
         fetchRateLimits
         fetchConvos
         fetchReplies
         allUserReplies
 
-    let insights =
-      ThreadsClient.getInsights fetchUserInsights fetchMediaInsights
+    let insights = Impl.getInsights fetchUserInsights fetchMediaInsights
 
     { new ThreadsClient with
         member _.Media = media
