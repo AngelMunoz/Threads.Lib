@@ -3,6 +3,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <RepositoryUrl>https://github.com/AngelMunoz/Threads.Lib</RepositoryUrl>
+    <FsDocsLicenseLink>https://github.com/AngelMunoz/Threads.Lib/blob/master/License.md</FsDocsLicenseLink>
+    <FsDocsReleaseNotesLink>https://github.com/AngelMunoz/Threads.Lib/blob/master/RELEASE_NOTES.md</FsDocsReleaseNotesLink>
+    <PackageProjectUrl>https://AngelMunoz.github.io/Threads.Lib</PackageProjectUrl>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="Pagination.fsi" />
     <Compile Include="Pagination.fs" />
