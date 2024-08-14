@@ -21,22 +21,37 @@ open Threads.Lib.API
 
 module Profile =
   open System
+  open System.Diagnostics
 
   type UserProfile = {
     id: string
     username: string
     bio: string
-    profilePicture: Uri option
-  } with
+    profilePicture: Uri voption
+  }
 
-    static member Default() = {
+  module UserProfile =
+    let Default() = {
       id = ""
       username = ""
       bio = ""
-      profilePicture = None
+      profilePicture = ValueNone
     }
 
-
+    let FromValues values =
+      values
+      |> Seq.fold
+        (fun current next ->
+          match next with
+          | Id id -> { current with id = id }
+          | Username username -> { current with username = username }
+          | ThreadsBiography bio -> { current with bio = bio }
+          | ThreadsProfilePictureUrl profilePicture ->
+              {
+                current with
+                    profilePicture = ValueSome profilePicture
+              })
+        (Default())
 
   type PageStatus =
     | Loading
@@ -52,7 +67,7 @@ module Profile =
       let! token = Async.CancellationToken
 
       let! response =
-        threads.FetchProfile(
+        threads.Profile.FetchProfile(
           "me",
           [
             ProfileField.Id
@@ -63,20 +78,7 @@ module Profile =
           token
         )
 
-      let record =
-        response
-        |> Seq.fold
-          (fun current next ->
-            match next with
-            | Id id -> { current with id = id }
-            | Username username -> { current with username = username }
-            | ThreadsBiography bio -> { current with bio = bio }
-            | ThreadsProfilePictureUrl profilePicture ->
-                {
-                  current with
-                      profilePicture = Some profilePicture
-                })
-          (UserProfile.Default())
+      let record = UserProfile.FromValues response
 
       profile.setValue(record)
       status.setValue(Idle)
@@ -85,49 +87,84 @@ module Profile =
   let loadingScreen() =
     TextBlock().text("Loading...") :> Control
 
+  let profilePicture(source: IBinding) =
+    Border()
+      .cornerRadius(75)
+      .width(64)
+      .height(64)
+      .clipToBounds(true)
+      .child(Image().source(source).height(64).width(64))
+
+  let loadProfilePicture
+    (pfpUri, onLoaded: Avalonia.Media.Imaging.Bitmap -> unit)
+    =
+    async {
+      let! image =
+        match pfpUri |> ValueOption.map(fun uri -> uri) with
+        | ValueSome uri -> uri
+        | ValueNone -> Uri("https://via.placeholder.com/64")
+        |> Image.getBitmapFromUri
+
+      return onLoaded image
+    }
+    |> Async.StartImmediate
+
   let profileSection(profile: cval<UserProfile>) = adaptive {
     let! profile = profile
 
+    let source = cval ValueNone
+
+    loadProfilePicture(profile.profilePicture, ValueSome >> source.setValue)
+
+    let pfpSrc =
+      source
+      |> AVal.map (function
+        | ValueSome v -> v
+        | ValueNone -> null)
+      |> AVal.toBinding
+
     return
-      StackPanel()
-        .spacing(4.)
+      DockPanel()
+        .lastChildFill(true)
+        .maxHeight(150)
+        .VerticalAlignmentTop()
         .children(
+          profilePicture(pfpSrc).DockLeft().VerticalAlignmentTop().margin(8.),
           StackPanel()
-            .spacing(2.)
-            .OrientationHorizontal()
+            .DockTop()
+            .spacing(4.)
             .children(
-              TextBlock().text("Username: "),
-              TextBlock().text(profile.username)
-            ),
-          StackPanel()
-            .spacing(2.)
-            .OrientationHorizontal()
-            .children(TextBlock().text("Bio: "), TextBlock().text(profile.bio))
+              TextBlock()
+                .text($"@%s{profile.username}")
+                .OnTappedEvent(fun _ obs ->
+                  obs.Add(fun _ ->
+                    Debug.WriteLine(
+                      $"Clicked on %s{profile.username}, Let's visit!"
+                    ))),
+              ScrollViewer().content(TextBlock().text(profile.bio))
+            )
         )
       :> Control
   }
 
-  let page (threads: ThreadsClient) ctx _ =
+  let page (threads: ThreadsClient) ctx _ = async {
     let loadProfile = loadProfile threads
+    let status = cval(Loading)
 
-    async {
-      let status = cval(Loading)
+    let profile = cval(UserProfile.Default())
 
-      let profile = cval(UserProfile.Default())
+    let! token = Async.CancellationToken
 
-      let! token = Async.CancellationToken
+    Async.StartImmediate(loadProfile status profile, token)
 
-      Async.StartImmediate(loadProfile status profile, token)
+    let content =
+      adaptive {
+        match! status with
+        | Loading -> return loadingScreen()
+        | Idle -> return! profileSection profile
+      }
+      |> AVal.toBinding
 
-      return
-        UserControl()
-          .content(
-            adaptive {
-              match! status with
-              | Loading -> return loadingScreen()
-              | Idle -> return! profileSection profile
-            }
-            |> AVal.toBinding
-          )
+    return UserControl().content(content)
 
-    }
+  }

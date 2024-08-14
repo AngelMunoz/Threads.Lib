@@ -13,9 +13,7 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
-      "console": "internalConsole",
-      "env": {
-      }
+      "console": "internalConsole"
     }
   ]
 }
