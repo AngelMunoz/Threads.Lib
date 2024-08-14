@@ -10,7 +10,7 @@ open NXUI.FSharp.Extensions
 open Navs
 open Navs.Avalonia
 
-open Threads.Lib.API
+open Threads.Lib
 
 let getRoutes(threads: ThreadsClient) = [
   Route.define(

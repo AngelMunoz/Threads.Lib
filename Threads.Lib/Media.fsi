@@ -1,6 +1,7 @@
 namespace Threads.Lib
 
 open System
+open FsHttp
 
 module Media =
   [<Struct>]
@@ -60,7 +61,7 @@ module Media =
   }
 
   val internal getThreads:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     profileId: string ->
     pagination: PaginationKind option ->
@@ -68,7 +69,7 @@ module Media =
       Async<Result<ThreadListResponse, string>>
 
   val internal getThread:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     threadId: string ->
     threadFields: ThreadField seq ->

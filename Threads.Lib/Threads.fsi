@@ -1,10 +1,9 @@
-namespace Threads.Lib.API
+namespace Threads.Lib
 
+open FsHttp
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
-
-open Threads.Lib
 
 type InsightsService =
   abstract FetchMediaInsights:
@@ -108,5 +107,7 @@ type ThreadsClient =
   abstract Insights: InsightsService
 
 [<Class>]
-type ThreadClient =
-  static member Create: accessToken: string -> ThreadsClient
+type Threads =
+  static member Create:
+    accessToken: string * [<OptionalAttribute>] ?headerContext: HeaderContext ->
+      ThreadsClient
