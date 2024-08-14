@@ -11,7 +11,7 @@ open SkiaSharp
 
 open Navs
 open Navs.Avalonia
-open Threads.Lib.API
+open Threads.Lib
 
 let navigate url (router: IRouter<Control>) _ _ =
   async {
@@ -25,7 +25,7 @@ let navigate url (router: IRouter<Control>) _ _ =
 
 let app accessToken () =
 
-  let threads = ThreadClient.Create(accessToken)
+  let threads = ThreadsClient.create(accessToken)
 
   let router =
     AvaloniaRouter(

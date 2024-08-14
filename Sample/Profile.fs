@@ -17,7 +17,6 @@ open Navs.Avalonia
 
 open Threads.Lib
 open Threads.Lib.Profiles
-open Threads.Lib.API
 
 module Profile =
   open System
