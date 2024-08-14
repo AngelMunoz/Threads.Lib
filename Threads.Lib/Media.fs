@@ -227,40 +227,47 @@ module Media =
         paging = get.Required.Field "paging" Pagination.Decode
       })
 
-  let getThreads baseUrl accessToken profileId pagination threadFields = async {
+  let getThreads
+    (baseHttp: HeaderContext)
+    accessToken
+    profileId
+    pagination
+    threadFields
+    =
+    async {
+      let fields =
+        threadFields
+        |> Seq.map ThreadField.asString
+        |> (fun f -> String.Join(",", f))
+
+      let! req =
+        baseHttp {
+          GET $"%s{profileId}/threads"
+
+          query [
+            if String.IsNullOrEmpty fields then () else "field", fields
+            match pagination with
+            | Some pagination -> yield! PaginationKind.toStringTuple pagination
+            | None -> ()
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
+
+      let! res = Response.toTextAsync req
+
+      return Decode.fromString ThreadListResponse.Decode res
+    }
+
+  let getThread (baseHttp: HeaderContext) accessToken threadId threadFields = async {
     let fields =
       threadFields
       |> Seq.map ThreadField.asString
       |> (fun f -> String.Join(",", f))
 
     let! req =
-      http {
-        GET $"%s{baseUrl}/%s{profileId}/threads"
-
-        query [
-          if String.IsNullOrEmpty fields then () else "field", fields
-          match pagination with
-          | Some pagination -> yield! PaginationKind.toStringTuple pagination
-          | None -> ()
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
-
-    let! res = Response.toTextAsync req
-
-    return Decode.fromString ThreadListResponse.Decode res
-  }
-
-  let getThread baseUrl accessToken threadId threadFields = async {
-    let fields =
-      threadFields
-      |> Seq.map ThreadField.asString
-      |> (fun f -> String.Join(",", f))
-
-    let! req =
-      http {
-        GET $"%s{baseUrl}/threads/%s{threadId}"
+      baseHttp {
+        GET $"threads/%s{threadId}"
 
         query [
           if String.IsNullOrEmpty fields then () else "field", fields

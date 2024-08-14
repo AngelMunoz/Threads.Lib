@@ -1,10 +1,9 @@
 namespace Threads.Lib
 
+open FsHttp
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
-
-open Threads.Lib
 
 type InsightsService =
   abstract FetchMediaInsights:
@@ -107,6 +106,8 @@ type ThreadsClient =
   abstract Replies: ReplyManagementService
   abstract Insights: InsightsService
 
-module ThreadsClient =
-  [<CompiledName "Create">]
-  val create: accessToken: string -> ThreadsClient
+[<Class>]
+type Threads =
+  static member Create:
+    accessToken: string * [<OptionalAttribute>] ?headerContext: HeaderContext ->
+      ThreadsClient

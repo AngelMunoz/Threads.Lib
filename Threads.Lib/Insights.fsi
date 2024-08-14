@@ -1,6 +1,7 @@
 namespace Threads.Lib
 
 open System
+open FsHttp
 
 module Insights =
   type DemographicBreakdown =
@@ -48,7 +49,7 @@ module Insights =
     | Breakdown of demographicBreakdown: DemographicBreakdown
 
   val internal getMediaInsights:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     mediaId: string ->
     metrics: Metric array ->
@@ -60,7 +61,7 @@ module Insights =
     | FollowerDemographicsMustIncludeBreakdown
 
   val internal getUserInsights:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     metrics: Metric array ->

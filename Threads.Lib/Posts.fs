@@ -102,57 +102,63 @@ module Posts =
     | IsTextButNoTextProvided
 
 
-  let createSingleContainer baseUrl accessToken userId postParams = asyncResult {
-    let postParams =
-      postParams
-      |> Seq.filter(fun f ->
-        match f with
-        | CarouselItem -> false
-        | _ -> true)
-      |> Seq.toList
-
-    let mediaType = PostParam.extractMediaType postParams
-
-    match mediaType with
-    | Some Carousel -> do! Error IsCarouselInSingleContainer
-    | Some Image ->
-      do!
+  let createSingleContainer
+    (baseHttp: HeaderContext)
+    accessToken
+    userId
+    postParams
+    =
+    asyncResult {
+      let postParams =
         postParams
-        |> PostParam.extractImageUrl
-        |> Result.requireSome IsImageButImageNotProvided
-        |> Result.ignore
-    | Some Video ->
-      do!
-        postParams
-        |> PostParam.extractVideoUrl
-        |> Result.requireSome IsVideoButNoVideoProvided
-        |> Result.ignore
-    | Some MediaType.Text
-    | None ->
-      do!
-        postParams
-        |> PostParam.extractText
-        |> Result.requireSome IsTextButNoTextProvided
-        |> Result.ignore
+        |> Seq.filter(fun f ->
+          match f with
+          | CarouselItem -> false
+          | _ -> true)
+        |> Seq.toList
 
-    let postParams = postParams |> List.map PostParam.toStringTuple
+      let mediaType = PostParam.extractMediaType postParams
 
-    let! req =
-      http {
-        POST $"%s{baseUrl}/%s{userId}/threads"
+      match mediaType with
+      | Some Carousel -> do! Error IsCarouselInSingleContainer
+      | Some Image ->
+        do!
+          postParams
+          |> PostParam.extractImageUrl
+          |> Result.requireSome IsImageButImageNotProvided
+          |> Result.ignore
+      | Some Video ->
+        do!
+          postParams
+          |> PostParam.extractVideoUrl
+          |> Result.requireSome IsVideoButNoVideoProvided
+          |> Result.ignore
+      | Some MediaType.Text
+      | None ->
+        do!
+          postParams
+          |> PostParam.extractText
+          |> Result.requireSome IsTextButNoTextProvided
+          |> Result.ignore
 
-        query [
-          yield! postParams
-          "is_carousel_item", "false"
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+      let postParams = postParams |> List.map PostParam.toStringTuple
 
-    let! (response: PostId) = req |> Response.deserializeJsonAsync
+      let! req =
+        baseHttp {
+          POST $"%s{userId}/threads"
 
-    return response
-  }
+          query [
+            yield! postParams
+            "is_carousel_item", "false"
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
+
+      let! (response: PostId) = req |> Response.deserializeJsonAsync
+
+      return response
+    }
 
   [<Struct>]
   type CarouselItemContainerError =
@@ -160,95 +166,114 @@ module Posts =
     | IsImageButImageNotProvided
     | IsVideoButNoVideoProvided
 
-  let createCarouselItemContainer baseUrl accessToken userId postParams = asyncResult {
-    let postParams =
-      postParams
-      |> Seq.filter(fun f ->
-        match f with
-        | CarouselItem -> false
-        | _ -> true)
-      |> Seq.toList
-
-    let mediaType = PostParam.extractMediaType postParams
-
-    match mediaType with
-    | Some Carousel
-    | Some MediaType.Text
-    | None -> do! Error MediaTypeMustbeVideoOrImage
-    | Some Image ->
-      do!
+  let createCarouselItemContainer
+    (baseHttp: HeaderContext)
+    accessToken
+    userId
+    postParams
+    =
+    asyncResult {
+      let postParams =
         postParams
-        |> PostParam.extractImageUrl
-        |> Result.requireSome IsImageButImageNotProvided
-        |> Result.ignore
-    | Some Video ->
-      do!
-        postParams
-        |> PostParam.extractVideoUrl
-        |> Result.requireSome IsVideoButNoVideoProvided
-        |> Result.ignore
+        |> Seq.filter(fun f ->
+          match f with
+          | CarouselItem -> false
+          | _ -> true)
+        |> Seq.toList
 
-    let postParams = postParams |> List.map PostParam.toStringTuple
+      let mediaType = PostParam.extractMediaType postParams
 
-    let! req =
-      http {
-        POST $"%s{baseUrl}/%s{userId}/threads"
+      match mediaType with
+      | Some Carousel
+      | Some MediaType.Text
+      | None -> do! Error MediaTypeMustbeVideoOrImage
+      | Some Image ->
+        do!
+          postParams
+          |> PostParam.extractImageUrl
+          |> Result.requireSome IsImageButImageNotProvided
+          |> Result.ignore
+      | Some Video ->
+        do!
+          postParams
+          |> PostParam.extractVideoUrl
+          |> Result.requireSome IsVideoButNoVideoProvided
+          |> Result.ignore
 
-        query [
-          yield! postParams
-          "is_carousel_item", "true"
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+      let postParams = postParams |> List.map PostParam.toStringTuple
 
-    let! (response: PostId) = req |> Response.deserializeJsonAsync
+      let! req =
+        baseHttp {
+          POST $"%s{userId}/threads"
 
-    return response
-  }
+          query [
+            yield! postParams
+            "is_carousel_item", "true"
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
+
+      let! (response: PostId) = req |> Response.deserializeJsonAsync
+
+      return response
+    }
 
   [<Struct>]
   type CarouselContainerError =
     | MoreThan10Children
     | CarouselPostIsEmpty
 
-  let createCarouselContainer baseUrl accessToken userId children textContent = asyncResult {
-    let children = children |> Seq.map _.id |> Seq.toList
+  let createCarouselContainer
+    (baseHttp: HeaderContext)
+    accessToken
+    userId
+    children
+    textContent
+    =
+    asyncResult {
+      let children = children |> Seq.map _.id |> Seq.toList
 
-    do! children.Length = 0 |> Result.requireFalse CarouselPostIsEmpty
-    do! children.Length > 10 |> Result.requireFalse MoreThan10Children
-    let children = String.Join(",", children)
+      do! children.Length = 0 |> Result.requireFalse CarouselPostIsEmpty
+      do! children.Length > 10 |> Result.requireFalse MoreThan10Children
+      let children = String.Join(",", children)
 
-    let! req =
-      http {
-        POST $"%s{baseUrl}/%s{userId}/threads"
+      let! req =
+        baseHttp {
+          POST $"%s{userId}/threads"
 
-        query [
-          "media_type", "CAROUSEL"
-          "children", children
-          match textContent with
-          | Some text -> "text", text
-          | None -> ()
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+          query [
+            "media_type", "CAROUSEL"
+            "children", children
+            match textContent with
+            | Some text -> "text", text
+            | None -> ()
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
 
-    let! (response: PostId) = req |> Response.deserializeJsonAsync
+      let! (response: PostId) = req |> Response.deserializeJsonAsync
 
-    return response
-  }
+      return response
+    }
 
-  let publishContainer baseUrl accessToken userId containerId = async {
-    let! req =
-      http {
-        POST $"%s{baseUrl}/%s{userId}/threads_publish"
+  let publishContainer
+    (baseHttp: HeaderContext)
+    accessToken
+    userId
+    containerId
+    =
+    async {
+      let! req =
+        baseHttp {
+          POST $"%s{userId}/threads_publish"
 
-        query [ "creation_id", containerId.id; "access_token", accessToken ]
-      }
-      |> Request.sendAsync
+          query [ "creation_id", containerId.id; "access_token", accessToken ]
+        }
+        |> Request.sendAsync
 
-    let! (response: PostId) = req |> Response.deserializeJsonAsync
+      let! (response: PostId) = req |> Response.deserializeJsonAsync
 
-    return response
-  }
+      return response
+    }

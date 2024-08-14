@@ -133,23 +133,29 @@ module Insights =
     | Until of until: DateTimeOffset
     | Breakdown of demographicBreakdown: DemographicBreakdown
 
-  let getMediaInsights baseUrl accessToken mediaId (metrics: Metric array) = async {
-    let! req =
-      http {
-        GET $"%s{baseUrl}/%s{mediaId}/threads_insights"
+  let getMediaInsights
+    (baseHttp: HeaderContext)
+    accessToken
+    mediaId
+    (metrics: Metric array)
+    =
+    async {
+      let! req =
+        baseHttp {
+          GET $"%s{mediaId}/threads_insights"
 
-        query [
-          if metrics.Length > 0 then
-            "metric", String.Join(",", Array.map Metric.asString metrics)
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+          query [
+            if metrics.Length > 0 then
+              "metric", String.Join(",", Array.map Metric.asString metrics)
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
 
-    let! res = Response.toTextAsync req
+      let! res = Response.toTextAsync req
 
-    return Decode.fromString MediaMetricResponse.Decode res
-  }
+      return Decode.fromString MediaMetricResponse.Decode res
+    }
 
   type InsightError =
     | DateTooEarly
@@ -157,7 +163,7 @@ module Insights =
     | FollowerDemographicsMustIncludeBreakdown
 
   let getUserInsights
-    baseUrl
+    (baseHttp: HeaderContext)
     accessToken
     userId
     (metrics: Metric array)
@@ -218,8 +224,8 @@ module Insights =
       | _ -> ()
 
       let! req =
-        http {
-          GET $"%s{baseUrl}/%s{userId}/threads_insights"
+        baseHttp {
+          GET $"%s{userId}/threads_insights"
 
           query [
             if metrics.Length > 0 then

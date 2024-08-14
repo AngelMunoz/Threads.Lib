@@ -1,6 +1,5 @@
 namespace Threads.Lib
 
-open Thoth.Json.Net
 open FsHttp
 
 module ReplyManagement =
@@ -102,14 +101,14 @@ module ReplyManagement =
   }
 
   val internal getRateLimits:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     fields: RateLimitField seq ->
       Async<Result<RateLimitResponse, string>>
 
   val internal getReplies:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     mediaId: string ->
     fields: ReplyField seq ->
@@ -117,7 +116,7 @@ module ReplyManagement =
       Async<Result<ConversationResponse, string>>
 
   val internal getConversations:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     mediaId: string ->
     fields: ReplyField seq ->
@@ -125,14 +124,14 @@ module ReplyManagement =
       Async<Result<ConversationResponse, string>>
 
   val internal getUserReplies:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     fields: ReplyField seq ->
       Async<Result<ConversationResponse, string>>
 
   val internal manageReply:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     replyId: string ->
     shouldHide: bool ->

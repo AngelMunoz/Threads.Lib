@@ -25,7 +25,7 @@ let navigate url (router: IRouter<Control>) _ _ =
 
 let app accessToken () =
 
-  let threads = ThreadsClient.create(accessToken)
+  let threads = Threads.Create(accessToken)
 
   let router =
     AvaloniaRouter(

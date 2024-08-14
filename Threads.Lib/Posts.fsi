@@ -1,6 +1,7 @@
 namespace Threads.Lib
 
 open System
+open FsHttp
 
 module Posts =
   [<Struct>]
@@ -36,7 +37,7 @@ module Posts =
     | IsTextButNoTextProvided
 
   val internal createSingleContainer:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     postParams: PostParam seq ->
@@ -49,7 +50,7 @@ module Posts =
     | IsVideoButNoVideoProvided
 
   val internal createCarouselItemContainer:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     postParams: PostParam seq ->
@@ -61,7 +62,7 @@ module Posts =
     | CarouselPostIsEmpty
 
   val internal createCarouselContainer:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     children: PostId seq ->
@@ -69,7 +70,7 @@ module Posts =
       Async<Result<PostId, CarouselContainerError>>
 
   val internal publishContainer:
-    baseUrl: string ->
+    baseHttp: HeaderContext ->
     accessToken: string ->
     userId: string ->
     containerId: PostId ->

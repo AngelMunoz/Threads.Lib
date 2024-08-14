@@ -427,12 +427,12 @@ module ReplyManagement =
       })
 
 
-  let getRateLimits baseUrl accessToken userId fields = async {
+  let getRateLimits (baseHttp: HeaderContext) accessToken userId fields = async {
     let fields = fields |> Seq.toList
 
     let! req =
-      http {
-        GET $"%s{baseUrl}/%s{userId}/threads_publishing_limit"
+      baseHttp {
+        GET $"%s{userId}/threads_publishing_limit"
 
         query [
           if fields.Length > 0 then
@@ -449,12 +449,12 @@ module ReplyManagement =
   }
 
 
-  let getReplies baseUrl accessToken mediaId fields reverse = async {
+  let getReplies (baseHttp: HeaderContext) accessToken mediaId fields reverse = async {
     let fields = fields |> Seq.toList
 
     let! req =
-      http {
-        GET $"%s{baseUrl}/%s{mediaId}/replies"
+      baseHttp {
+        GET $"%s{mediaId}/replies"
 
         query [
           if fields.Length > 0 then
@@ -473,20 +473,48 @@ module ReplyManagement =
     return Decode.fromString ReplyResponse.Decode res
   }
 
-  let getConversations baseUrl accessToken mediaId fields reverse = async {
+  let getConversations
+    (baseHttp: HeaderContext)
+    accessToken
+    mediaId
+    fields
+    reverse
+    =
+    async {
+      let fields = fields |> Seq.toList
+
+      let! req =
+        baseHttp {
+          GET $"%s{mediaId}/conversations"
+
+          query [
+            if fields.Length > 0 then
+              let fields = fields |> List.map ReplyField.asString
+              "fields", String.Join(",", fields)
+            if reverse then
+              "reverse", "true"
+
+            "access_token", accessToken
+          ]
+        }
+        |> Request.sendAsync
+
+      let! res = Response.toTextAsync req
+
+      return Decode.fromString ReplyResponse.Decode res
+    }
+
+  let getUserReplies (baseHttp: HeaderContext) accessToken userId fields = async {
     let fields = fields |> Seq.toList
 
     let! req =
-      http {
-        GET $"%s{baseUrl}/%s{mediaId}/conversations"
+      baseHttp {
+        GET $"%s{userId}/replies"
 
         query [
           if fields.Length > 0 then
             let fields = fields |> List.map ReplyField.asString
             "fields", String.Join(",", fields)
-          if reverse then
-            "reverse", "true"
-
           "access_token", accessToken
         ]
       }
@@ -497,31 +525,10 @@ module ReplyManagement =
     return Decode.fromString ReplyResponse.Decode res
   }
 
-  let getUserReplies baseUrl accessToken userId fields = async {
-    let fields = fields |> Seq.toList
-
+  let manageReply (baseHttp: HeaderContext) accessToken replyId shouldHide = async {
     let! req =
-      http {
-        GET $"%s{baseUrl}/%s{userId}/replies"
-
-        query [
-          if fields.Length > 0 then
-            let fields = fields |> List.map ReplyField.asString
-            "fields", String.Join(",", fields)
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
-
-    let! res = Response.toTextAsync req
-
-    return Decode.fromString ReplyResponse.Decode res
-  }
-
-  let manageReply baseUrl accessToken replyId shouldHide = async {
-    let! req =
-      http {
-        POST $"%s{baseUrl}/%s{replyId}/manage_reply"
+      baseHttp {
+        POST $"%s{replyId}/manage_reply"
 
         query [
           "hide", (if shouldHide then "true" else "false")
