@@ -5,8 +5,6 @@ open System.Threading.Tasks
 open FsHttp
 open System.Runtime.InteropServices
 
-open Threads.Lib
-
 type InsightsService =
   abstract FetchMediaInsights:
     mediaId: string *
