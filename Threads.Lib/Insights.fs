@@ -2,9 +2,10 @@ namespace Threads.Lib
 
 open System
 
+open Flurl
+open Flurl.Http
 open FsToolkit.ErrorHandling
 open Thoth.Json.Net
-open FsHttp
 
 module Decode =
   let timestamp: Decoder<DateTimeOffset> =
@@ -134,25 +135,27 @@ module Insights =
     | Breakdown of demographicBreakdown: DemographicBreakdown
 
   let getMediaInsights
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    mediaId
+    (mediaId: string)
     (metrics: Metric array)
     =
     async {
       let! req =
-        baseHttp {
-          GET $"%s{mediaId}/threads_insights"
 
-          query [
-            if metrics.Length > 0 then
-              "metric", String.Join(",", Array.map Metric.asString metrics)
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendAsync
+        baseUrl
+          .AppendPathSegments(mediaId, "threads_insights")
+          .SetQueryParams(
+            [
+              if metrics.Length > 0 then
+                "metric", String.Join(",", Array.map Metric.asString metrics)
+              "access_token", accessToken
+            ]
+          )
+          .GetAsync()
+        |> Async.AwaitTask
 
-      let! res = Response.toTextAsync req
+      let! res = req.GetStringAsync() |> Async.AwaitTask
 
       return Decode.fromString MediaMetricResponse.Decode res
     }
@@ -163,9 +166,9 @@ module Insights =
     | FollowerDemographicsMustIncludeBreakdown
 
   let getUserInsights
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    userId
+    (userId: string)
     (metrics: Metric array)
     insightParams
     =
@@ -224,27 +227,30 @@ module Insights =
       | _ -> ()
 
       let! req =
-        baseHttp {
-          GET $"%s{userId}/threads_insights"
 
-          query [
-            if metrics.Length > 0 then
-              "metric", String.Join(",", Array.map Metric.asString metrics)
-            yield!
-              insightParams
-              |> Array.map (function
-                | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
-                | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}"
-                | Breakdown(Country value) -> "breakdown", value
-                | Breakdown(City value) -> "breakdown", value
-                | Breakdown(Age value) -> "breakdown", $"%i{value}"
-                | Breakdown(Gender value) -> "breakdown", value)
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendAsync
+        baseUrl
+          .AppendPathSegments(userId, "threads_insights")
+          .SetQueryParams(
+            [
+              if metrics.Length > 0 then
+                "metric", String.Join(",", Array.map Metric.asString metrics)
+              yield!
+                insightParams
+                |> Array.map (function
+                  | Since since -> "since", $"%i{since.ToUnixTimeSeconds()}"
+                  | Until until -> "until", $"%i{until.ToUnixTimeSeconds()}"
+                  | Breakdown(Country value) -> "breakdown", value
+                  | Breakdown(City value) -> "breakdown", value
+                  | Breakdown(Age value) -> "breakdown", $"%i{value}"
+                  | Breakdown(Gender value) -> "breakdown", value)
+              "access_token", accessToken
+            ]
+          )
+          .GetAsync()
+        |> Async.AwaitTask
 
-      let! res = Response.toTextAsync req
+
+      let! res = req.GetStringAsync() |> Async.AwaitTask
 
       return!
         Decode.fromString MediaMetricResponse.Decode res

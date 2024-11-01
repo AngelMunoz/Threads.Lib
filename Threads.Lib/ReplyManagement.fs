@@ -1,7 +1,10 @@
 namespace Threads.Lib
 
+open System.Collections.Generic
 open Thoth.Json.Net
-open FsHttp
+open Flurl
+open Flurl.Http
+open Threads.Lib.Common
 
 module ReplyManagement =
   open System
@@ -61,14 +64,6 @@ module ReplyManagement =
         data =
           get.Required.Field "data" (Decode.array RateLimitFieldValue.Decode)
       })
-
-  [<Struct>]
-  type MediaProductType = | Threads
-
-  module MediaProductType =
-    let asString =
-      function
-      | Threads -> "THREADS"
 
   [<Struct>]
   type MediaType =
@@ -164,15 +159,6 @@ module ReplyManagement =
       | HideStatus -> "hide_status"
       | ReplyAudience -> "reply_audience"
 
-  [<Struct>]
-  type PostId = { id: string }
-
-  module PostId =
-    let Decode: Decoder<PostId> =
-      Decode.object(fun get -> {
-        id = get.Required.Field "id" Decode.string
-      })
-
   type ReplyFieldValue =
     | Id of string
     | Text of string
@@ -184,11 +170,11 @@ module ReplyManagement =
     | MediaUrl of Uri
     | Shortcode of string
     | ThumbnailUrl of Uri
-    | Children of PostId array
+    | Children of IdLike array
     | IsQuotePost of bool
     | HasReplies of bool
-    | RootPost of PostId
-    | RepliedTo of PostId
+    | RootPost of IdLike
+    | RepliedTo of IdLike
     | IsReply of bool
     | IsReplyOwnedByMe of bool
     | HideStatus of HideStatus
@@ -295,7 +281,7 @@ module ReplyManagement =
     let decodeChildren
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
-      get.Optional.Field "children" (Decode.array PostId.Decode)
+      get.Optional.Field "children" (Decode.array IdLike.Decode)
       |> Option.map(Children >> values.Add)
       |> Option.defaultValue()
 
@@ -323,7 +309,7 @@ module ReplyManagement =
     let decodeRootPost
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
-      get.Optional.Field "root_post" PostId.Decode
+      get.Optional.Field "root_post" IdLike.Decode
       |> Option.map(RootPost >> values.Add)
       |> Option.defaultValue()
 
@@ -332,7 +318,7 @@ module ReplyManagement =
     let decodeRepliedTo
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
-      get.Optional.Field "replied_to" PostId.Decode
+      get.Optional.Field "replied_to" IdLike.Decode
       |> Option.map(RepliedTo >> values.Add)
       |> Option.defaultValue()
 
@@ -427,56 +413,34 @@ module ReplyManagement =
       })
 
 
-  let getRateLimits (baseHttp: HeaderContext) accessToken userId fields = async {
+  let getRateLimits (baseUrl: string) accessToken (userId: string) fields = async {
     let fields = fields |> Seq.toList
 
     let! req =
-      baseHttp {
-        GET $"%s{userId}/threads_publishing_limit"
 
-        query [
-          if fields.Length > 0 then
-            let values = fields |> List.map RateLimitField.asString
-            "fields", String.Join(",", values)
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+      baseUrl
+        .AppendPathSegments(userId, "threads_publishing_limit")
+        .SetQueryParams(
+          [
+            if fields.Length > 0 then
+              let values = fields |> List.map RateLimitField.asString
+              "fields", String.Join(",", values)
+            "access_token", accessToken
+          ]
+        )
+        .GetAsync()
+      |> Async.AwaitTask
 
-    let! res = Response.toTextAsync req
+    let! res = req.GetStringAsync() |> Async.AwaitTask
 
     return Decode.fromString RateLimitResponse.Decode res
   }
 
 
-  let getReplies (baseHttp: HeaderContext) accessToken mediaId fields reverse = async {
-    let fields = fields |> Seq.toList
-
-    let! req =
-      baseHttp {
-        GET $"%s{mediaId}/replies"
-
-        query [
-          if fields.Length > 0 then
-            let fields = fields |> List.map ReplyField.asString
-            "fields", String.Join(",", fields)
-          if reverse then
-            "reverse", "true"
-
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
-
-    let! res = Response.toTextAsync req
-
-    return Decode.fromString ReplyResponse.Decode res
-  }
-
-  let getConversations
-    (baseHttp: HeaderContext)
+  let getReplies
+    (baseUrl: string)
     accessToken
-    mediaId
+    (mediaId: string)
     fields
     reverse
     =
@@ -484,60 +448,102 @@ module ReplyManagement =
       let fields = fields |> Seq.toList
 
       let! req =
-        baseHttp {
-          GET $"%s{mediaId}/conversations"
 
-          query [
-            if fields.Length > 0 then
-              let fields = fields |> List.map ReplyField.asString
-              "fields", String.Join(",", fields)
-            if reverse then
-              "reverse", "true"
+        baseUrl
+          .AppendPathSegments(mediaId, "replies")
+          .SetQueryParams(
+            [
+              if fields.Length > 0 then
+                let values = fields |> List.map ReplyField.asString
+                "fields", String.Join(",", values)
+              if reverse then
+                "reverse", "true"
+              "access_token", accessToken
+            ]
+          )
+          .GetAsync()
+        |> Async.AwaitTask
 
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendAsync
-
-      let! res = Response.toTextAsync req
+      let! res = req.GetStringAsync() |> Async.AwaitTask
 
       return Decode.fromString ReplyResponse.Decode res
     }
 
-  let getUserReplies (baseHttp: HeaderContext) accessToken userId fields = async {
+  let getConversations
+    (baseUrl: string)
+    accessToken
+    (mediaId: string)
+    fields
+    reverse
+    =
+    async {
+      let fields = fields |> Seq.toList
+
+      let! req =
+
+        baseUrl
+          .AppendPathSegments(mediaId, "conversations")
+          .SetQueryParams(
+            [
+              if fields.Length > 0 then
+                let values = fields |> List.map ReplyField.asString
+                "fields", String.Join(",", values)
+              if reverse then
+                "reverse", "true"
+              "access_token", accessToken
+            ]
+          )
+          .GetAsync()
+        |> Async.AwaitTask
+
+      let! res = req.GetStringAsync() |> Async.AwaitTask
+
+      return Decode.fromString ReplyResponse.Decode res
+    }
+
+  let getUserReplies (baseUrl: string) accessToken (userId: string) fields = async {
     let fields = fields |> Seq.toList
 
     let! req =
-      baseHttp {
-        GET $"%s{userId}/replies"
 
-        query [
-          if fields.Length > 0 then
-            let fields = fields |> List.map ReplyField.asString
-            "fields", String.Join(",", fields)
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+      baseUrl
+        .AppendPathSegments(userId, "replies")
+        .SetQueryParams(
+          [
+            if fields.Length > 0 then
+              let values = fields |> List.map ReplyField.asString
+              "fields", String.Join(",", values)
+            "access_token", accessToken
+          ]
+        )
+        .GetAsync()
+      |> Async.AwaitTask
 
-    let! res = Response.toTextAsync req
+    let! res = req.GetStringAsync() |> Async.AwaitTask
 
     return Decode.fromString ReplyResponse.Decode res
   }
 
-  let manageReply (baseHttp: HeaderContext) accessToken replyId shouldHide = async {
+  let manageReply (baseUrl: string) accessToken (replyId: string) shouldHide = async {
     let! req =
-      baseHttp {
-        POST $"%s{replyId}/manage_reply"
 
-        query [
-          "hide", (if shouldHide then "true" else "false")
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+      baseUrl
+        .AppendPathSegments(replyId, "manage_reply")
+        .SetQueryParams(
+          [
+            "hide", (if shouldHide then "true" else "false")
+            "access_token", accessToken
+          ]
+        )
+        .PostAsync()
+      |> Async.AwaitTask
 
-    let! res = Response.toJsonAsync req
-    return res.GetProperty("success").GetBoolean()
+    let! res = req.GetJsonAsync<Map<string, obj>>() |> Async.AwaitTask
+
+    return
+      res
+      |> Map.tryFind "success"
+      |> Option.map(fun v -> (unbox<string> v) = "true")
+      |> Option.defaultValue false
 
   }

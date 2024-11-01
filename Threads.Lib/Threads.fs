@@ -2,8 +2,8 @@ namespace Threads.Lib
 
 open System.Threading
 open System.Threading.Tasks
-open FsHttp
 open System.Runtime.InteropServices
+open Threads.Lib.Common
 
 type InsightsService =
   abstract FetchMediaInsights:
@@ -57,26 +57,26 @@ type PostService =
     profileId: string *
     postParams: Posts.PostParam seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
   abstract PostCarouselItemContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
   abstract PostCarousel:
     profileId: string *
-    children: Posts.PostId seq *
+    children: IdLike seq *
     [<Optional>] ?textContent: string *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
   abstract PublishPost:
     profileId: string *
-    containerId: Posts.PostId *
+    containerId: IdLike *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
 type MediaService =
   abstract FetchThreads:
@@ -136,11 +136,8 @@ module Impl =
     { new MediaService with
 
         member _.FetchThread
-          (
-            threadId,
-            [<Optional>] ?fields,
-            [<Optional>] ?cancellationToken
-          ) =
+          (threadId, [<Optional>] ?fields, [<Optional>] ?cancellationToken)
+          =
 
           let work = async {
             let profileFields = defaultArg fields []
@@ -283,9 +280,9 @@ module Impl =
         member _.PublishPost
           (
             profileId: string,
-            containerId: Posts.PostId,
+            containerId: IdLike,
             [<Optional>] ?cancellationToken: CancellationToken
-          ) : Task<Posts.PostId> =
+          ) : Task<IdLike> =
 
           Async.StartImmediateAsTask(
             publishPost profileId containerId,
@@ -324,11 +321,8 @@ module Impl =
 
 
         member _.FetchRateLimits
-          (
-            userId,
-            [<Optional>] ?fields,
-            [<Optional>] ?cancellationToken
-          ) =
+          (userId, [<Optional>] ?fields, [<Optional>] ?cancellationToken)
+          =
           let fields = defaultArg fields Seq.empty
 
           let work = async {
@@ -365,11 +359,8 @@ module Impl =
           )
 
         member _.FetchUserReplies
-          (
-            userId,
-            [<Optional>] ?fields,
-            [<Optional>] ?cancellationToken
-          ) =
+          (userId, [<Optional>] ?fields, [<Optional>] ?cancellationToken)
+          =
           let fields = defaultArg fields Seq.empty
 
           let work = async {
@@ -409,12 +400,8 @@ module Impl =
           Async.StartImmediateAsTask(work, cancellationToken = token)
 
         member _.FetchUserInsights
-          (
-            userId,
-            metrics,
-            insightParams,
-            [<Optional>] ?cancellationToken
-          ) =
+          (userId, metrics, insightParams, [<Optional>] ?cancellationToken)
+          =
           let metrics = metrics |> Seq.toArray
           let insightParams = insightParams |> Seq.toArray
           let token = defaultArg cancellationToken CancellationToken.None
@@ -442,35 +429,30 @@ module Impl =
 
 [<Class>]
 type Threads =
-  static member Create
-    (accessToken, [<Optional>] ?headerContext: HeaderContext) =
+  static member Create(accessToken, [<Optional>] ?baseUrl: string) =
 
-    let baseHttp =
-      defaultArg
-        headerContext
-        (http { config_useBaseUrl "https://graph.threads.net/v1.0/" })
+    let baseUrl = defaultArg baseUrl "https://graph.threads.net/v1.0"
 
-    let fetchProfile = Profiles.getProfile baseHttp accessToken
+    let fetchProfile = Profiles.getProfile baseUrl accessToken
 
-    let fetchThreads = Media.getThreads baseHttp accessToken
-    let fetchThread = Media.getThread baseHttp accessToken
+    let fetchThreads = Media.getThreads baseUrl accessToken
+    let fetchThread = Media.getThread baseUrl accessToken
 
-    let postSingle = Posts.createSingleContainer baseHttp accessToken
+    let postSingle = Posts.createSingleContainer baseUrl accessToken
 
-    let postCarouselItem =
-      Posts.createCarouselItemContainer baseHttp accessToken
+    let postCarouselItem = Posts.createCarouselItemContainer baseUrl accessToken
 
-    let postCarousel = Posts.createCarouselContainer baseHttp accessToken
-    let publishPost = Posts.publishContainer baseHttp accessToken
+    let postCarousel = Posts.createCarouselContainer baseUrl accessToken
+    let publishPost = Posts.publishContainer baseUrl accessToken
 
-    let fetchRateLimits = ReplyManagement.getRateLimits baseHttp accessToken
-    let fetchReplies = ReplyManagement.getReplies baseHttp accessToken
-    let fetchConvos = ReplyManagement.getConversations baseHttp accessToken
-    let allUserReplies = ReplyManagement.getUserReplies baseHttp accessToken
-    let manageReply = ReplyManagement.manageReply baseHttp accessToken
+    let fetchRateLimits = ReplyManagement.getRateLimits baseUrl accessToken
+    let fetchReplies = ReplyManagement.getReplies baseUrl accessToken
+    let fetchConvos = ReplyManagement.getConversations baseUrl accessToken
+    let allUserReplies = ReplyManagement.getUserReplies baseUrl accessToken
+    let manageReply = ReplyManagement.manageReply baseUrl accessToken
 
-    let fetchUserInsights = Insights.getUserInsights baseHttp accessToken
-    let fetchMediaInsights = Insights.getMediaInsights baseHttp accessToken
+    let fetchUserInsights = Insights.getUserInsights baseUrl accessToken
+    let fetchMediaInsights = Insights.getMediaInsights baseUrl accessToken
 
     let profile = Impl.getProfileService fetchProfile
     let media = Impl.getMediaService fetchThread fetchThreads

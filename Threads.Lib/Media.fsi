@@ -1,11 +1,9 @@
 namespace Threads.Lib
 
 open System
-open FsHttp
+open Threads.Lib.Common
 
 module Media =
-  [<Struct>]
-  type MediaProductType = Threads
 
   [<Struct>]
   type MediaType =
@@ -16,13 +14,7 @@ module Media =
     | Audio
     | RepostFacade
 
-  [<Struct>]
-  type Owner = { id: string }
-
-  [<Struct>]
-  type ThreadId = { id: string }
-
-  type ThreadChildren = { data: ThreadId seq }
+  type ThreadChildren = { data: IdLike seq }
 
   [<Struct>]
   type ThreadField =
@@ -40,13 +32,14 @@ module Media =
     | Children
     | IsQuotePost
 
+  [<RequireQualifiedAccess>]
   type ThreadValue =
     | Id of string
     | MediaProductType of MediaProductType
     | MediaType of MediaType
     | MediaUrl of Uri
     | Permalink of Uri
-    | Owner of Owner
+    | Owner of IdLike
     | Username of string
     | Text of string
     | Timestamp of DateTimeOffset
@@ -61,7 +54,7 @@ module Media =
   }
 
   val internal getThreads:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     profileId: string ->
     pagination: PaginationKind option ->
@@ -69,7 +62,7 @@ module Media =
       Async<Result<ThreadListResponse, string>>
 
   val internal getThread:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     threadId: string ->
     threadFields: ThreadField seq ->

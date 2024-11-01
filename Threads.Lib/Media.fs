@@ -3,13 +3,12 @@
 open System
 
 open Thoth.Json.Net
-open FsHttp
+open Flurl
+open Flurl.Http
 
+open Threads.Lib.Common
 
 module Media =
-
-  [<Struct>]
-  type MediaProductType = Threads
 
   [<Struct>]
   type MediaType =
@@ -20,30 +19,12 @@ module Media =
     | Audio
     | RepostFacade
 
-  [<Struct>]
-  type Owner = { id: string }
-
-  module Owner =
-    let Decode: Decoder<Owner> =
-      Decode.object(fun get -> {
-        id = get.Required.Field "id" Decode.string
-      })
-
-  [<Struct>]
-  type ThreadId = { id: string }
-
-  module ThreadId =
-    let Decode: Decoder<ThreadId> =
-      Decode.object(fun get -> {
-        id = get.Required.Field "id" Decode.string
-      })
-
-  type ThreadChildren = { data: ThreadId seq }
+  type ThreadChildren = { data: IdLike seq }
 
   module ThreadChildren =
     let Decode: Decoder<ThreadChildren> =
       Decode.object(fun get -> {
-        data = get.Required.Field "data" (Decode.list ThreadId.Decode)
+        data = get.Required.Field "data" (Decode.list IdLike.Decode)
       })
 
   [<Struct>]
@@ -79,13 +60,14 @@ module Media =
       | Children -> "children"
       | IsQuotePost -> "is_quote_post"
 
+  [<RequireQualifiedAccess>]
   type ThreadValue =
     | Id of string
     | MediaProductType of MediaProductType
     | MediaType of MediaType
     | MediaUrl of Uri
     | Permalink of Uri
-    | Owner of Owner
+    | Owner of IdLike
     | Username of string
     | Text of string
     | Timestamp of DateTimeOffset
@@ -98,12 +80,13 @@ module Media =
 
     let decodeMediaType(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "media_type" Decode.string with
-      | Some "TEXT_POST" -> MediaType TextPost |> fields.Add
-      | Some "IMAGE" -> MediaType Image |> fields.Add
-      | Some "VIDEO" -> MediaType Video |> fields.Add
-      | Some "CAROUSEL_ALBUM" -> MediaType CarouselAlbum |> fields.Add
-      | Some "AUDIO" -> MediaType Audio |> fields.Add
-      | Some "REPOST_FACADE" -> MediaType RepostFacade |> fields.Add
+      | Some "TEXT_POST" -> ThreadValue.MediaType TextPost |> fields.Add
+      | Some "IMAGE" -> ThreadValue.MediaType Image |> fields.Add
+      | Some "VIDEO" -> ThreadValue.MediaType Video |> fields.Add
+      | Some "CAROUSEL_ALBUM" ->
+        ThreadValue.MediaType CarouselAlbum |> fields.Add
+      | Some "AUDIO" -> ThreadValue.MediaType Audio |> fields.Add
+      | Some "REPOST_FACADE" -> ThreadValue.MediaType RepostFacade |> fields.Add
       | Some value -> () // new value added?
       | None -> ()
 
@@ -111,7 +94,7 @@ module Media =
 
     let decodeMediaProductType(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "media_product_type" Decode.string with
-      | Some "THREADS" -> MediaProductType Threads |> fields.Add
+      | Some "THREADS" -> ThreadValue.MediaProductType Threads |> fields.Add
       | Some value -> () // new value added?
       | None -> ()
 
@@ -119,35 +102,35 @@ module Media =
 
     let decodeMediaUrl(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "media_url" Decode.string with
-      | Some value -> Uri value |> MediaUrl |> fields.Add
+      | Some value -> Uri value |> ThreadValue.MediaUrl |> fields.Add
       | None -> ()
 
       get, fields
 
     let decodePermaLink(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "permalink" Decode.string with
-      | Some value -> Uri value |> Permalink |> fields.Add
+      | Some value -> Uri value |> ThreadValue.Permalink |> fields.Add
       | None -> ()
 
       get, fields
 
     let decodeOwner(get: Decode.IGetters, fields: _ ResizeArray) =
-      match get.Optional.Field "owner" Owner.Decode with
-      | Some owner -> Owner owner |> fields.Add
+      match get.Optional.Field "owner" IdLike.Decode with
+      | Some owner -> ThreadValue.Owner owner |> fields.Add
       | None -> ()
 
       get, fields
 
     let decodeUsername(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "username" Decode.string with
-      | Some username -> Username username |> fields.Add
+      | Some username -> ThreadValue.Username username |> fields.Add
       | None -> ()
 
       get, fields
 
     let decodeText(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "text" Decode.string with
-      | Some text -> Text text |> fields.Add
+      | Some text -> ThreadValue.Text text |> fields.Add
       | None -> ()
 
       get, fields
@@ -155,7 +138,7 @@ module Media =
     let decodeTimestamp(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "timestamp" Decode.datetimeOffset with
-      | Some timestamp -> Timestamp timestamp |> fields.Add
+      | Some timestamp -> ThreadValue.Timestamp timestamp |> fields.Add
       | None -> ()
 
       get, fields
@@ -163,7 +146,7 @@ module Media =
     let decodeShortcode(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "shortcode" Decode.string with
-      | Some shortcode -> ShortCode shortcode |> fields.Add
+      | Some shortcode -> ThreadValue.ShortCode shortcode |> fields.Add
       | None -> ()
 
       get, fields
@@ -171,7 +154,7 @@ module Media =
     let decodeThumbnailUrl(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "thumbnail_url" Decode.string with
-      | Some value -> Uri value |> ThumbnailUrl |> fields.Add
+      | Some value -> Uri value |> ThreadValue.ThumbnailUrl |> fields.Add
       | None -> ()
 
       get, fields
@@ -179,7 +162,7 @@ module Media =
     let decodeChildren(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "children" ThreadChildren.Decode with
-      | Some value -> value |> Children |> fields.Add
+      | Some value -> value |> ThreadValue.Children |> fields.Add
       | None -> ()
 
       get, fields
@@ -187,12 +170,12 @@ module Media =
     let decodeIsQuotePost(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "is_quote_post" Decode.bool with
-      | Some value -> value |> IsQuotePost |> fields.Add
+      | Some value -> value |> ThreadValue.IsQuotePost |> fields.Add
       | None -> ()
 
       get, fields
 
-    let inline finish(get: Decode.IGetters, fields: _ seq) = fields
+    let inline finish(_: Decode.IGetters, fields: _ seq) = fields
 
 
     let Decode: Decoder<ThreadValue seq> =
@@ -228,9 +211,9 @@ module Media =
       })
 
   let getThreads
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    profileId
+    (profileId: string)
     pagination
     threadFields
     =
@@ -240,40 +223,41 @@ module Media =
         |> Seq.map ThreadField.asString
         |> (fun f -> String.Join(",", f))
 
-      let! req =
-        baseHttp {
-          GET $"%s{profileId}/threads
-                ?access_token=%s{accessToken}
-                &fields=%s{fields}"
+      let! response =
+        baseUrl
+          .AppendPathSegments(profileId, "threads")
+          .SetQueryParams(
+            [
+              match pagination with
+              | Some pagination ->
+                yield! PaginationKind.toStringTuple pagination
+              | None -> ()
+              "fields", fields
+              "access_token", accessToken
+            ]
+          )
+          .GetAsync()
+        |> Async.AwaitTask
 
-          query [
-            match pagination with
-            | Some pagination -> yield! PaginationKind.toStringTuple pagination
-            | None -> ()
-          ]
-        }
-        |> Request.sendAsync
+      let! content = response.GetStringAsync() |> Async.AwaitTask
 
-      let! res = Response.toTextAsync req
-
-      return Decode.fromString ThreadListResponse.Decode res
+      return Decode.fromString ThreadListResponse.Decode content
     }
 
-  let getThread (baseHttp: HeaderContext) accessToken threadId threadFields = async {
+  let getThread (baseUrl: string) accessToken (threadId: string) threadFields = async {
     let fields =
       threadFields
       |> Seq.map ThreadField.asString
       |> (fun f -> String.Join(",", f))
 
-    let! req =
-      baseHttp {
-        GET $"threads/%s{threadId}
-                ?access_token=%s{accessToken}
-                &fields=%s{fields}"
-      }
-      |> Request.sendAsync
+    let! response =
 
-    let! res = Response.toTextAsync req
+      baseUrl
+        .AppendPathSegments(threadId, "threads")
+        .SetQueryParams([ "fields", fields; "access_token", accessToken ])
+        .GetAsync()
+      |> Async.AwaitTask
 
+    let! res = response.GetStringAsync() |> Async.AwaitTask
     return Decode.fromString ThreadValue.Decode res
   }

@@ -1,7 +1,7 @@
 namespace Threads.Lib
 
 open System
-open FsHttp
+open Threads.Lib.Common
 
 module Posts =
   [<Struct>]
@@ -27,9 +27,6 @@ module Posts =
     | ReplyControl of ReplyAudience
 
   [<Struct>]
-  type PostId = { id: string }
-
-  [<Struct>]
   type SingleContainerError =
     | IsCarouselInSingleContainer
     | IsImageButImageNotProvided
@@ -37,11 +34,11 @@ module Posts =
     | IsTextButNoTextProvided
 
   val internal createSingleContainer:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     userId: string ->
     postParams: PostParam seq ->
-      Async<Result<PostId, SingleContainerError>>
+      Async<Result<IdLike, SingleContainerError>>
 
   [<Struct>]
   type CarouselItemContainerError =
@@ -50,11 +47,11 @@ module Posts =
     | IsVideoButNoVideoProvided
 
   val internal createCarouselItemContainer:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     userId: string ->
     postParams: PostParam seq ->
-      Async<Result<PostId, CarouselItemContainerError>>
+      Async<Result<IdLike, CarouselItemContainerError>>
 
   [<Struct>]
   type CarouselContainerError =
@@ -62,16 +59,16 @@ module Posts =
     | CarouselPostIsEmpty
 
   val internal createCarouselContainer:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     userId: string ->
-    children: PostId seq ->
+    children: IdLike seq ->
     textContent: string option ->
-      Async<Result<PostId, CarouselContainerError>>
+      Async<Result<IdLike, CarouselContainerError>>
 
   val internal publishContainer:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     userId: string ->
-    containerId: PostId ->
-      Async<PostId>
+    containerId: IdLike ->
+      Async<IdLike>

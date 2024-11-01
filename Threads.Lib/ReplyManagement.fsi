@@ -1,6 +1,6 @@
 namespace Threads.Lib
 
-open FsHttp
+open Threads.Lib.Common
 
 module ReplyManagement =
   open System
@@ -22,9 +22,6 @@ module ReplyManagement =
     | ReplyConfig of rc: ReplyConfig
 
   type RateLimitResponse = { data: RateLimitFieldValue seq seq }
-
-  [<Struct>]
-  type MediaProductType = | Threads
 
   [<Struct>]
   type MediaType =
@@ -71,9 +68,7 @@ module ReplyManagement =
     | HideStatus
     | ReplyAudience
 
-  [<Struct>]
-  type PostId = { id: string }
-
+  [<RequireQualifiedAccess>]
   type ReplyFieldValue =
     | Id of string
     | Text of string
@@ -85,11 +80,11 @@ module ReplyManagement =
     | MediaUrl of Uri
     | Shortcode of string
     | ThumbnailUrl of Uri
-    | Children of PostId array
+    | Children of IdLike array
     | IsQuotePost of bool
     | HasReplies of bool
-    | RootPost of PostId
-    | RepliedTo of PostId
+    | RootPost of IdLike
+    | RepliedTo of IdLike
     | IsReply of bool
     | IsReplyOwnedByMe of bool
     | HideStatus of HideStatus
@@ -101,14 +96,14 @@ module ReplyManagement =
   }
 
   val internal getRateLimits:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     userId: string ->
     fields: RateLimitField seq ->
       Async<Result<RateLimitResponse, string>>
 
   val internal getReplies:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     mediaId: string ->
     fields: ReplyField seq ->
@@ -116,7 +111,7 @@ module ReplyManagement =
       Async<Result<ConversationResponse, string>>
 
   val internal getConversations:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     mediaId: string ->
     fields: ReplyField seq ->
@@ -124,14 +119,14 @@ module ReplyManagement =
       Async<Result<ConversationResponse, string>>
 
   val internal getUserReplies:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     userId: string ->
     fields: ReplyField seq ->
       Async<Result<ConversationResponse, string>>
 
   val internal manageReply:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     replyId: string ->
     shouldHide: bool ->

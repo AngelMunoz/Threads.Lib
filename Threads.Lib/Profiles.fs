@@ -2,7 +2,8 @@
 
 open System
 
-open FsHttp
+open Flurl
+open Flurl.Http
 open Thoth.Json.Net
 
 module Profiles =
@@ -22,6 +23,7 @@ module Profiles =
       | ThreadsProfilePictureUrl -> "threads_profile_picture_url"
       | ThreadsBiography -> "threads_biography"
 
+  [<RequireQualifiedAccess>]
   type ProfileValue =
     | Id of string
     | Username of string
@@ -31,14 +33,14 @@ module Profiles =
   module ProfileValue =
 
     let decodeId(get: Decode.IGetters, fields: _ ResizeArray) =
-      get.Required.Field "id" Decode.string |> Id |> fields.Add
+      get.Required.Field "id" Decode.string |> ProfileValue.Id |> fields.Add
 
       get, fields
 
     let decodeUsername(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "username" Decode.string with
-      | Some username -> Username username |> fields.Add
+      | Some username -> ProfileValue.Username username |> fields.Add
       | None -> ()
 
       get, fields
@@ -49,7 +51,9 @@ module Profiles =
 
       match get.Optional.Field "threads_profile_picture_url" Decode.string with
       | Some profilePictureUrl ->
-        Uri profilePictureUrl |> ThreadsProfilePictureUrl |> fields.Add
+        Uri profilePictureUrl
+        |> ProfileValue.ThreadsProfilePictureUrl
+        |> fields.Add
       | None -> ()
 
       get, fields
@@ -57,7 +61,7 @@ module Profiles =
     let decodeThreadsBiography(get: Decode.IGetters, fields: _ ResizeArray) =
 
       match get.Optional.Field "threads_biography" Decode.string with
-      | Some bio -> bio |> ThreadsBiography |> fields.Add
+      | Some bio -> bio |> ProfileValue.ThreadsBiography |> fields.Add
       | None -> ()
 
       get, fields
@@ -73,7 +77,7 @@ module Profiles =
         |> decodeThreadsBiography
         |> finish)
 
-  let getProfile (baseHttp: HeaderContext) accessToken profileId profileFields = async {
+  let getProfile (baseUrl: string) accessToken profileId profileFields = async {
     let fields =
       profileFields
       |> Seq.map ProfileField.asString
@@ -85,17 +89,19 @@ module Profiles =
       | None -> "me"
 
     let! req =
-      baseHttp {
-        GET $"%s{profileId}"
+      baseUrl
+        .AppendPathSegment(profileId)
+        .SetQueryParams(
+          [
+            if String.IsNullOrEmpty fields then () else "fields", fields
+            "access_token", accessToken
+          ]
+        )
+        .GetAsync()
+      |> Async.AwaitTask
 
-        query [
-          if String.IsNullOrEmpty fields then () else "fields", fields
-          "access_token", accessToken
-        ]
-      }
-      |> Request.sendAsync
+    let! res = req.GetStringAsync() |> Async.AwaitTask
 
-    let! res = Response.toTextAsync req
 
     return Decode.fromString ProfileValue.Decode res
   }

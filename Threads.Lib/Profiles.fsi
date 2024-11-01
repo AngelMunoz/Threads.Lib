@@ -2,9 +2,9 @@ namespace Threads.Lib
 
 open System
 
-open FsHttp
 
 module Profiles =
+
   [<Struct>]
   type ProfileField =
     | Id
@@ -12,6 +12,7 @@ module Profiles =
     | ThreadsProfilePictureUrl
     | ThreadsBiography
 
+  [<RequireQualifiedAccess>]
   type ProfileValue =
     | Id of string
     | Username of string
@@ -19,7 +20,7 @@ module Profiles =
     | ThreadsBiography of string
 
   val internal getProfile:
-    baseHttp: HeaderContext ->
+    baseUrl: string ->
     accessToken: string ->
     profileId: string option ->
     profileFields: ProfileField seq ->

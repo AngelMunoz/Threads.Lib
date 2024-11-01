@@ -1,9 +1,10 @@
 namespace Threads.Lib
 
-open FsHttp
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
+
+open Threads.Lib.Common
 
 type InsightsService =
   abstract FetchMediaInsights:
@@ -57,26 +58,26 @@ type PostService =
     profileId: string *
     postParams: Posts.PostParam seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
   abstract PostCarouselItemContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
   abstract PostCarousel:
     profileId: string *
-    children: Posts.PostId seq *
+    children: IdLike seq *
     [<Optional>] ?textContent: string *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
   abstract PublishPost:
     profileId: string *
-    containerId: Posts.PostId *
+    containerId: IdLike *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Posts.PostId>
+      Task<IdLike>
 
 type MediaService =
   abstract FetchThreads:
@@ -109,5 +110,4 @@ type ThreadsClient =
 [<Class>]
 type Threads =
   static member Create:
-    accessToken: string * [<Optional>] ?headerContext: HeaderContext ->
-      ThreadsClient
+    accessToken: string * [<Optional>] ?baseUrl: string -> ThreadsClient

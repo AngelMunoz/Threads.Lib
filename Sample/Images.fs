@@ -2,26 +2,35 @@ module Sample.Image
 
 open System
 
-open FsHttp
+open System.Collections.Concurrent
+open Flurl.Http
 open SkiaSharp
 open System.IO
 open Avalonia.Media.Imaging
 
-// TODO: Cache these things later by given URL
-let getBitmapFromUri(url: Uri) = async {
-  let! req = http { GET(url.ToString()) } |> Request.sendAsync
+let cache = ConcurrentDictionary<string, Bitmap>()
 
-  let! res = Response.toBytesAsync req
+let getBitmapFromUri(url: Uri) = task {
 
-  return
-    new Bitmap(
-      SKImage
-        .FromBitmap(
-          SKBitmap
-            .Decode(new SKManagedStream(new MemoryStream(res), false))
-            .Resize(new SKImageInfo(128, 128), SKFilterQuality.High)
-        )
-        .Encode(SKEncodedImageFormat.Jpeg, 100)
-        .AsStream()
-    )
+  match cache.TryGetValue(url.ToString()) with
+  | true, bitmap -> return bitmap
+  | _ ->
+
+    let! res = url.GetBytesAsync()
+
+    let bitmap =
+      new Bitmap(
+        SKImage
+          .FromBitmap(
+            SKBitmap
+              .Decode(new SKManagedStream(new MemoryStream(res), false))
+              .Resize(SKImageInfo(128, 128), SKFilterQuality.High)
+          )
+          .Encode(SKEncodedImageFormat.Jpeg, 100)
+          .AsStream()
+      )
+
+    cache.TryAdd(url.ToString(), bitmap) |> ignore
+    return bitmap
+
 }

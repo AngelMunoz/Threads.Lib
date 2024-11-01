@@ -1,8 +1,10 @@
-﻿namespace Threads.Lib
+namespace Threads.Lib
 
 open System
-open FsHttp
+open Flurl
+open Flurl.Http
 open FsToolkit.ErrorHandling
+open Threads.Lib.Common
 
 module Posts =
 
@@ -91,10 +93,6 @@ module Posts =
         | _ -> None)
 
   [<Struct>]
-  type PostId = { id: string }
-
-
-  [<Struct>]
   type SingleContainerError =
     | IsCarouselInSingleContainer
     | IsImageButImageNotProvided
@@ -103,9 +101,9 @@ module Posts =
 
 
   let createSingleContainer
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    userId
+    (userId: string)
     postParams
     =
     asyncResult {
@@ -143,21 +141,19 @@ module Posts =
 
       let postParams = postParams |> List.map PostParam.toStringTuple
 
-      let! req =
-        baseHttp {
-          POST $"%s{userId}/threads"
+      let! response =
+        baseUrl
+          .AppendPathSegments(userId, "threads")
+          .SetQueryParams(
+            [
+              yield! postParams
+              "is_carousel_item", "false"
+              "access_token", accessToken
+            ]
+          )
+          .PostAsync()
 
-          query [
-            yield! postParams
-            "is_carousel_item", "false"
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendAsync
-
-      let! (response: PostId) = req |> Response.deserializeJsonAsync
-
-      return response
+      return! response.GetJsonAsync<IdLike>()
     }
 
   [<Struct>]
@@ -167,9 +163,9 @@ module Posts =
     | IsVideoButNoVideoProvided
 
   let createCarouselItemContainer
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    userId
+    (userId: string)
     postParams
     =
     asyncResult {
@@ -202,21 +198,19 @@ module Posts =
 
       let postParams = postParams |> List.map PostParam.toStringTuple
 
-      let! req =
-        baseHttp {
-          POST $"%s{userId}/threads"
+      let! response =
+        baseUrl
+          .AppendPathSegments(userId, "threads")
+          .SetQueryParams(
+            [
+              yield! postParams
+              "is_carousel_item", "true"
+              "access_token", accessToken
+            ]
+          )
+          .PostAsync()
 
-          query [
-            yield! postParams
-            "is_carousel_item", "true"
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendAsync
-
-      let! (response: PostId) = req |> Response.deserializeJsonAsync
-
-      return response
+      return! response.GetJsonAsync<IdLike>()
     }
 
   [<Struct>]
@@ -225,9 +219,9 @@ module Posts =
     | CarouselPostIsEmpty
 
   let createCarouselContainer
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    userId
+    (userId: string)
     children
     textContent
     =
@@ -238,42 +232,43 @@ module Posts =
       do! children.Length > 10 |> Result.requireFalse MoreThan10Children
       let children = String.Join(",", children)
 
-      let! req =
-        baseHttp {
-          POST $"%s{userId}/threads"
+      let! response =
+        baseUrl
+          .AppendPathSegments(userId, "threads")
+          .SetQueryParams(
+            [
+              "media_type", "CAROUSEL"
+              "children", children
 
-          query [
-            "media_type", "CAROUSEL"
-            "children", children
-            match textContent with
-            | Some text -> "text", text
-            | None -> ()
-            "access_token", accessToken
-          ]
-        }
-        |> Request.sendAsync
+              match textContent with
+              | Some text -> "text", text
+              | None -> ()
 
-      let! (response: PostId) = req |> Response.deserializeJsonAsync
+              "access_token", accessToken
+            ]
+          )
+          .PostAsync()
 
-      return response
+
+      return! response.GetJsonAsync<IdLike>()
     }
 
   let publishContainer
-    (baseHttp: HeaderContext)
+    (baseUrl: string)
     accessToken
-    userId
+    (userId: string)
     containerId
     =
     async {
-      let! req =
-        baseHttp {
-          POST $"%s{userId}/threads_publish"
+      let! result =
+        baseUrl
+          .AppendPathSegments(userId, "threads_publish")
+          .SetQueryParams(
+            [ "creation_id", containerId.id; "access_token", accessToken ]
+          )
+          .PostAsync()
+        |> Async.AwaitTask
 
-          query [ "creation_id", containerId.id; "access_token", accessToken ]
-        }
-        |> Request.sendAsync
 
-      let! (response: PostId) = req |> Response.deserializeJsonAsync
-
-      return response
+      return! result.GetJsonAsync<IdLike>() |> Async.AwaitTask
     }
