@@ -9,94 +9,94 @@ type InsightsService =
   abstract FetchMediaInsights:
     mediaId: string *
     metrics: Insights.Metric seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Insights.MetricResponse>
 
   abstract FetchUserInsights:
     userId: string *
     metrics: Insights.Metric seq *
     insightParams: Insights.InsightParam seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Insights.MetricResponse>
 
 type ReplyManagementService =
   abstract FetchRateLimits:
     userId: string *
-    [<OptionalAttribute>] ?fields: ReplyManagement.RateLimitField seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?fields: ReplyManagement.RateLimitField seq *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.RateLimitResponse>
 
   abstract FetchReplies:
     mediaId: string *
-    [<OptionalAttribute>] ?fields: ReplyManagement.ReplyField seq *
-    [<OptionalAttribute>] ?reverse: bool *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?fields: ReplyManagement.ReplyField seq *
+    [<Optional>] ?reverse: bool *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
   abstract FetchConversation:
     mediaId: string *
-    [<OptionalAttribute>] ?fields: ReplyManagement.ReplyField seq *
-    [<OptionalAttribute>] ?reverse: bool *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?fields: ReplyManagement.ReplyField seq *
+    [<Optional>] ?reverse: bool *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
   abstract FetchUserReplies:
     userId: string *
-    [<OptionalAttribute>] ?fields: ReplyManagement.ReplyField seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?fields: ReplyManagement.ReplyField seq *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
   abstract ManageReply:
     replyId: string *
     shouldHide: bool *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<bool>
 
 type PostService =
   abstract PostContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
   abstract PostCarouselItemContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
   abstract PostCarousel:
     profileId: string *
     children: Posts.PostId seq *
-    [<OptionalAttribute>] ?textContent: string *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?textContent: string *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
   abstract PublishPost:
     profileId: string *
     containerId: Posts.PostId *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Posts.PostId>
 
 type MediaService =
   abstract FetchThreads:
     profileId: string *
-    [<OptionalAttribute>] ?fields: Media.ThreadField seq *
-    [<OptionalAttribute>] ?pagination: PaginationKind *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?fields: Media.ThreadField seq *
+    [<Optional>] ?pagination: PaginationKind *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Media.ThreadListResponse>
 
   abstract FetchThread:
     threadId: string *
-    [<OptionalAttribute>] ?fields: Media.ThreadField seq *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<Optional>] ?fields: Media.ThreadField seq *
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Media.ThreadValue seq>
 
 type ProfileService =
   abstract FetchProfile:
     profileId: string *
-    [<OptionalAttribute>] ?profileFields: Profiles.ProfileField seq *
-    [<OptionalAttribute>] ?cancelaltionToken: CancellationToken ->
+    [<Optional>] ?profileFields: Profiles.ProfileField seq *
+    [<Optional>] ?cancelaltionToken: CancellationToken ->
       Task<Profiles.ProfileValue seq>
 
 
@@ -114,8 +114,8 @@ module Impl =
         member _.FetchProfile
           (
             profileId,
-            [<OptionalAttribute>] ?profileFields,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?profileFields,
+            [<Optional>] ?cancellationToken
           ) =
 
           let work = async {
@@ -138,8 +138,8 @@ module Impl =
         member _.FetchThread
           (
             threadId,
-            [<OptionalAttribute>] ?fields,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?fields,
+            [<Optional>] ?cancellationToken
           ) =
 
           let work = async {
@@ -158,9 +158,9 @@ module Impl =
         member _.FetchThreads
           (
             profileId,
-            [<OptionalAttribute>] ?fields,
-            [<OptionalAttribute>] ?pagination,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?fields,
+            [<Optional>] ?pagination,
+            [<Optional>] ?cancellationToken
           ) =
 
           let work = async {
@@ -183,8 +183,8 @@ module Impl =
           (
             profileId,
             children,
-            [<OptionalAttribute>] ?textContent,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?textContent,
+            [<Optional>] ?cancellationToken
           ) =
 
           let work = async {
@@ -211,7 +211,7 @@ module Impl =
           )
 
         member _.PostContainer
-          (profileId, postParams, [<OptionalAttribute>] ?cancellationToken)
+          (profileId, postParams, [<Optional>] ?cancellationToken)
           =
 
           let work = async {
@@ -247,7 +247,7 @@ module Impl =
           )
 
         member _.PostCarouselItemContainer
-          (profileId, postParams, [<OptionalAttribute>] ?cancellationToken)
+          (profileId, postParams, [<Optional>] ?cancellationToken)
           =
 
           let work = async {
@@ -284,7 +284,7 @@ module Impl =
           (
             profileId: string,
             containerId: Posts.PostId,
-            [<OptionalAttribute>] ?cancellationToken: CancellationToken
+            [<Optional>] ?cancellationToken: CancellationToken
           ) : Task<Posts.PostId> =
 
           Async.StartImmediateAsTask(
@@ -304,9 +304,9 @@ module Impl =
         member _.FetchConversation
           (
             mediaId,
-            [<OptionalAttribute>] ?fields,
-            [<OptionalAttribute>] ?reverse,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?fields,
+            [<Optional>] ?reverse,
+            [<Optional>] ?cancellationToken
           ) =
           let reverse = defaultArg reverse false
           let fields = defaultArg fields Seq.empty
@@ -326,8 +326,8 @@ module Impl =
         member _.FetchRateLimits
           (
             userId,
-            [<OptionalAttribute>] ?fields,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?fields,
+            [<Optional>] ?cancellationToken
           ) =
           let fields = defaultArg fields Seq.empty
 
@@ -346,9 +346,9 @@ module Impl =
         member _.FetchReplies
           (
             mediaId,
-            [<OptionalAttribute>] ?fields,
-            [<OptionalAttribute>] ?reverse,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?fields,
+            [<Optional>] ?reverse,
+            [<Optional>] ?cancellationToken
           ) =
           let fields = defaultArg fields Seq.empty
           let reverse = defaultArg reverse false
@@ -367,8 +367,8 @@ module Impl =
         member _.FetchUserReplies
           (
             userId,
-            [<OptionalAttribute>] ?fields,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?fields,
+            [<Optional>] ?cancellationToken
           ) =
           let fields = defaultArg fields Seq.empty
 
@@ -384,7 +384,7 @@ module Impl =
           )
 
         member _.ManageReply
-          (replyId, shouldHide, [<OptionalAttribute>] ?cancellationToken)
+          (replyId, shouldHide, [<Optional>] ?cancellationToken)
           =
           Async.StartImmediateAsTask(
             manageReply replyId shouldHide,
@@ -395,7 +395,7 @@ module Impl =
   let getInsights fetchUserInsights fetchMediaInsights =
     { new InsightsService with
         member _.FetchMediaInsights
-          (mediaId, metrics, [<OptionalAttribute>] ?cancellationToken)
+          (mediaId, metrics, [<Optional>] ?cancellationToken)
           =
           let metrics = metrics |> Seq.toArray
           let token = defaultArg cancellationToken CancellationToken.None
@@ -413,7 +413,7 @@ module Impl =
             userId,
             metrics,
             insightParams,
-            [<OptionalAttribute>] ?cancellationToken
+            [<Optional>] ?cancellationToken
           ) =
           let metrics = metrics |> Seq.toArray
           let insightParams = insightParams |> Seq.toArray
@@ -443,7 +443,7 @@ module Impl =
 [<Class>]
 type Threads =
   static member Create
-    (accessToken, [<OptionalAttribute>] ?headerContext: HeaderContext) =
+    (accessToken, [<Optional>] ?headerContext: HeaderContext) =
 
     let baseHttp =
       defaultArg
