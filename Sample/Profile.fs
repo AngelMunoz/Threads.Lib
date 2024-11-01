@@ -18,6 +18,7 @@ open Navs
 open Navs.Avalonia
 
 open Threads.Lib
+open Threads.Lib.Common
 open Threads.Lib.Profiles
 
 module Profile =
@@ -42,12 +43,15 @@ module Profile =
     let FromValues values =
       values
       |> Seq.fold
-        (fun current next ->
+        (fun (current: UserProfile) next ->
           match next with
-          | Id id -> { current with id = id }
-          | Username username -> { current with username = username }
-          | ThreadsBiography bio -> { current with bio = bio }
-          | ThreadsProfilePictureUrl profilePicture ->
+          | ProfileValue.Id id -> { current with id = id }
+          | ProfileValue.Username username -> {
+              current with
+                  username = username
+            }
+          | ProfileValue.ThreadsBiography bio -> { current with bio = bio }
+          | ProfileValue.ThreadsProfilePictureUrl profilePicture ->
               {
                 current with
                     profilePicture = ValueSome profilePicture
@@ -61,9 +65,9 @@ module Profile =
     timestamp: DateTimeOffset
     mediaUrl: string
     mediaType: Media.MediaType
-    owner: Media.Owner
+    owner: IdLike
     permalink: string
-    children: Media.ThreadId seq
+    children: IdLike seq
   }
 
   module Post =
@@ -83,7 +87,7 @@ module Profile =
     let FromValues values =
       values
       |> Seq.fold
-        (fun current next ->
+        (fun (current: Post) next ->
           match next with
           | Media.ThreadValue.Id id -> { current with id = id }
           | Media.ThreadValue.Username username -> {
