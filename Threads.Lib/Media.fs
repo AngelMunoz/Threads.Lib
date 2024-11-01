@@ -242,14 +242,14 @@ module Media =
 
       let! req =
         baseHttp {
-          GET $"%s{profileId}/threads"
+          GET $"%s{profileId}/threads
+                ?access_token=%s{accessToken}
+                &fields=%s{fields}"
 
           query [
-            if String.IsNullOrEmpty fields then () else "field", fields
             match pagination with
             | Some pagination -> yield! PaginationKind.toStringTuple pagination
             | None -> ()
-            "access_token", accessToken
           ]
         }
         |> Request.sendAsync
@@ -267,12 +267,9 @@ module Media =
 
     let! req =
       baseHttp {
-        GET $"threads/%s{threadId}"
-
-        query [
-          if String.IsNullOrEmpty fields then () else "field", fields
-          "access_token", accessToken
-        ]
+        GET $"threads/%s{threadId}
+                ?access_token=%s{accessToken}
+                &fields=%s{fields}"
       }
       |> Request.sendAsync
 
