@@ -14,26 +14,24 @@ open Navs.Avalonia
 open Threads.Lib
 
 let navigate url (router: IRouter<Control>) _ _ =
-  async {
-    let! result = router.Navigate(url) |> Async.AwaitTask
+  task {
+    let! result = router.Navigate(url)
 
     match result with
     | Ok _ -> ()
     | Error e -> printfn $"%A{e}"
   }
-  |> Async.StartImmediate
+  |> ignore
 
 let app accessToken () =
 
   let threads = Threads.Create(accessToken)
 
-  let router =
+  let router: IRouter<_> =
     AvaloniaRouter(
       Samples.Routes.getRoutes threads,
       splash = (fun _ -> TextBlock().text("Loading..."))
     )
-
-
 
   let window =
     Window()
@@ -56,6 +54,7 @@ let app accessToken () =
             RouterOutlet().router(router)
           )
       )
+      .OnLoadedHandler(navigate "/profile" router)
 #if DEBUG
   window.AttachDevTools()
 #endif

@@ -1,5 +1,7 @@
 namespace Sample
 
+open Avalonia.Controls.Templates
+open Avalonia.Media
 open IcedTasks
 open IcedTasks.Polyfill.Async
 
@@ -52,6 +54,67 @@ module Profile =
               })
         (Default())
 
+  type Post = {
+    id: string
+    username: string
+    text: string
+    timestamp: DateTimeOffset
+    mediaUrl: string
+    mediaType: Media.MediaType
+    owner: Media.Owner
+    permalink: string
+    children: Media.ThreadId seq
+  }
+
+  module Post =
+
+    let Default() = {
+      id = ""
+      username = ""
+      text = ""
+      timestamp = DateTimeOffset.MinValue
+      mediaUrl = ""
+      mediaType = Media.TextPost
+      owner = { id = "" }
+      permalink = ""
+      children = []
+    }
+
+    let FromValues values =
+      values
+      |> Seq.fold
+        (fun current next ->
+          match next with
+          | Media.ThreadValue.Id id -> { current with id = id }
+          | Media.ThreadValue.Username username -> {
+              current with
+                  username = username
+            }
+          | Media.ThreadValue.Text text -> { current with text = text }
+          | Media.ThreadValue.Timestamp timestamp -> {
+              current with
+                  timestamp = timestamp
+            }
+          | Media.ThreadValue.MediaUrl mediaUrl -> {
+              current with
+                  mediaUrl = mediaUrl.ToString()
+            }
+          | Media.ThreadValue.MediaType mediaType -> {
+              current with
+                  mediaType = mediaType
+            }
+          | Media.ThreadValue.Owner owner -> { current with owner = owner }
+          | Media.ThreadValue.Permalink permalink -> {
+              current with
+                  permalink = permalink.ToString()
+            }
+          | Media.ThreadValue.Children children ->
+              {
+                current with
+                    children = children.data
+              })
+        (Default())
+
   type PageStatus =
     | Loading
     | Idle
@@ -83,6 +146,30 @@ module Profile =
       status.setValue(Idle)
     }
 
+  let loadUserThreads (threads: ThreadsClient) (mediaPosts: cval<Post list>) = async {
+    let! token = Async.CancellationToken
+
+    let! threads =
+      threads.Media.FetchThreads(
+        "me",
+        [
+          Media.ThreadField.Id
+          Media.ThreadField.Username
+          Media.ThreadField.Text
+          Media.ThreadField.Timestamp
+          Media.ThreadField.MediaUrl
+          Media.ThreadField.MediaType
+          Media.ThreadField.Owner
+          Media.ThreadField.Permalink
+        ],
+        cancellationToken = token
+      )
+
+    threads.data |> Seq.map Post.FromValues |> Seq.toList |> mediaPosts.setValue
+
+    return ()
+  }
+
   let loadingScreen() =
     TextBlock().text("Loading...") :> Control
 
@@ -93,6 +180,28 @@ module Profile =
       .height(64)
       .clipToBounds(true)
       .child(Image().source(source).height(64).width(64))
+
+  let postCard(post: Post) : Control =
+    let date = post.timestamp.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+
+    Border()
+      .cornerRadius(5)
+      .margin(8.)
+      .borderBrush(Brushes.Gray)
+      .borderThickness(Thickness(0, 0, 0, 1))
+      .padding(2.)
+      .child(
+        StackPanel()
+          .spacing(2.5)
+          .children(
+            TextBlock().text(post.username).DockTop(),
+            TextBlock()
+              .text(post.text)
+              .DockLeft()
+              .textWrapping(TextWrapping.Wrap),
+            TextBlock().text(date).DockBottom()
+          )
+      )
 
   let loadProfilePicture
     (pfpUri, onLoaded: Avalonia.Media.Imaging.Bitmap -> unit)
@@ -108,8 +217,7 @@ module Profile =
     }
     |> Async.StartImmediate
 
-  let profileSection(profile: cval<UserProfile>) = adaptive {
-    let! profile = profile
+  let profileSection(profile: UserProfile) =
 
     let source = cval ValueNone
 
@@ -122,48 +230,66 @@ module Profile =
         | ValueNone -> null)
       |> AVal.toBinding
 
-    return
-      DockPanel()
-        .lastChildFill(true)
-        .maxHeight(150)
-        .VerticalAlignmentTop()
-        .children(
-          profilePicture(pfpSrc).DockLeft().VerticalAlignmentTop().margin(8.),
-          StackPanel()
-            .DockTop()
-            .spacing(4.)
-            .children(
-              TextBlock()
-                .text($"@%s{profile.username}")
-                .OnTappedEvent(fun _ obs ->
-                  obs.Add(fun _ ->
-                    Debug.WriteLine(
-                      $"Clicked on %s{profile.username}, Let's visit!"
-                    ))),
-              ScrollViewer().content(TextBlock().text(profile.bio))
-            )
-        )
-      :> Control
-  }
+
+    DockPanel()
+      .lastChildFill(true)
+      .maxHeight(150)
+      .VerticalAlignmentTop()
+      .children(
+        profilePicture(pfpSrc).DockLeft().VerticalAlignmentTop().margin(8.),
+        StackPanel()
+          .DockTop()
+          .spacing(4.)
+          .children(
+            TextBlock()
+              .text($"@%s{profile.username}")
+              .OnTappedEvent(fun _ obs ->
+                obs.Add(fun _ ->
+                  Debug.WriteLine(
+                    $"Clicked on %s{profile.username}, Let's visit!"
+                  ))),
+            ScrollViewer().content(TextBlock().text(profile.bio))
+          )
+      )
+
 
   let page (threads: ThreadsClient) ctx _ = async {
     let loadProfile = loadProfile threads
+    let loadUserThreads = loadUserThreads threads
     let status = cval(Loading)
 
     let profile = cval(UserProfile.Default())
+    let mediaPosts = cval([])
 
     let! token = Async.CancellationToken
 
     Async.StartImmediate(loadProfile status profile, token)
+    Async.StartImmediate(loadUserThreads mediaPosts, token)
 
     let content =
       adaptive {
         match! status with
         | Loading -> return loadingScreen()
-        | Idle -> return! profileSection profile
+        | Idle ->
+          let! profile = profile
+
+          return
+            DockPanel()
+              .lastChildFill(true)
+              .children(
+                (profileSection profile).DockTop().margin(0., 0., 0., 8.),
+                ScrollViewer()
+                  .DockTop()
+                  .content(
+                    ItemsControl()
+                      .itemsSource(mediaPosts |> AVal.toBinding)
+                      .itemTemplate(
+                        FuncDataTemplate<Post>(fun post _ -> postCard post)
+                      )
+                  )
+              )
       }
       |> AVal.toBinding
 
     return UserControl().content(content)
-
   }
