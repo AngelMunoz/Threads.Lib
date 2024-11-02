@@ -55,7 +55,7 @@ module Posts =
 
   [<Struct>]
   type CarouselContainerError =
-    | MoreThan10Children
+    | ChildLimitExceeded
     | CarouselPostIsEmpty
 
   val internal createCarouselContainer:

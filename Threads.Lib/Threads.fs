@@ -195,9 +195,9 @@ module Impl =
                   nameof(Posts.CarouselContainerError.CarouselPostIsEmpty)
                   |> exn
                   |> raise
-              | Posts.CarouselContainerError.MoreThan10Children ->
+              | Posts.CarouselContainerError.ChildLimitExceeded ->
                 return
-                  nameof(Posts.CarouselContainerError.CarouselPostIsEmpty)
+                  nameof(Posts.CarouselContainerError.ChildLimitExceeded)
                   |> exn
                   |> raise
           }

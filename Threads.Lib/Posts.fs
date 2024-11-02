@@ -52,7 +52,7 @@ module Posts =
       | CarouselItem -> "is_carousel_item", "true"
       | ImageUrl url -> "image_url", url.ToString()
       | MediaType media -> "media_type", MediaType.asString media
-      | VideoUrl url -> "image_url", url.ToString()
+      | VideoUrl url -> "video_url", url.ToString()
       | Text text -> "text", text
       | ReplyTo value -> "reply_to", value
       | ReplyControl value -> "reply_control", ReplyAudience.asString value
@@ -107,13 +107,6 @@ module Posts =
     postParams
     =
     asyncResult {
-      let postParams =
-        postParams
-        |> Seq.filter(fun f ->
-          match f with
-          | CarouselItem -> false
-          | _ -> true)
-        |> Seq.toList
 
       let mediaType = PostParam.extractMediaType postParams
 
@@ -139,7 +132,7 @@ module Posts =
           |> Result.requireSome IsTextButNoTextProvided
           |> Result.ignore
 
-      let postParams = postParams |> List.map PostParam.toStringTuple
+      let postParams = postParams |> Seq.map PostParam.toStringTuple
 
       let! response =
         baseUrl
@@ -169,13 +162,6 @@ module Posts =
     postParams
     =
     asyncResult {
-      let postParams =
-        postParams
-        |> Seq.filter(fun f ->
-          match f with
-          | CarouselItem -> false
-          | _ -> true)
-        |> Seq.toList
 
       let mediaType = PostParam.extractMediaType postParams
 
@@ -196,7 +182,7 @@ module Posts =
           |> Result.requireSome IsVideoButNoVideoProvided
           |> Result.ignore
 
-      let postParams = postParams |> List.map PostParam.toStringTuple
+      let postParams = postParams |> Seq.map PostParam.toStringTuple
 
       let! response =
         baseUrl
@@ -215,7 +201,7 @@ module Posts =
 
   [<Struct>]
   type CarouselContainerError =
-    | MoreThan10Children
+    | ChildLimitExceeded
     | CarouselPostIsEmpty
 
   let createCarouselContainer
@@ -229,7 +215,7 @@ module Posts =
       let children = children |> Seq.map _.id |> Seq.toList
 
       do! children.Length = 0 |> Result.requireFalse CarouselPostIsEmpty
-      do! children.Length > 10 |> Result.requireFalse MoreThan10Children
+      do! children.Length > 20 |> Result.requireFalse ChildLimitExceeded
       let children = String.Join(",", children)
 
       let! response =
