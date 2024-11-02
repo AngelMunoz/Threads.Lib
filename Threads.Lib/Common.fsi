@@ -12,6 +12,5 @@ module internal IdLike =
 [<Struct>]
 type MediaProductType = | Threads
 
-
 module internal MediaProductType =
   val asString: MediaProductType -> string
