@@ -33,6 +33,7 @@ module Insights =
     | Replies
     | Reposts
     | Quotes
+    | Shares
     | FollowerCount
     | FollowerDemographics
 
@@ -44,6 +45,7 @@ module Insights =
       | Replies -> "replies"
       | Reposts -> "reposts"
       | Quotes -> "quotes"
+      | Shares -> "shares"
       | FollowerCount -> "follower_count"
       | FollowerDemographics -> "follower_demographics"
 
@@ -55,6 +57,7 @@ module Insights =
         | "replies" -> Ok Replies
         | "reposts" -> Ok Reposts
         | "quotes" -> Ok Quotes
+        | "shares" -> Ok Shares
         | _ -> (path, BadPrimitive("a valid metric", jsonValue)) |> Error
 
   [<Struct>]

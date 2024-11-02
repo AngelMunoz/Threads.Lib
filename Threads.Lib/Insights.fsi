@@ -16,6 +16,7 @@ module Insights =
     | Replies
     | Reposts
     | Quotes
+    | Shares
     | FollowerCount
     | FollowerDemographics
 
