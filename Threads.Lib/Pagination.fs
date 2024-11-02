@@ -67,7 +67,7 @@ module PaginationKind =
         (fun current next ->
           match next with
           | Until value -> "until", $"%i{value.ToUnixTimeMilliseconds()}"
-          | Since value -> "after", $"%i{value.ToUnixTimeMilliseconds()}"
+          | Since value -> "since", $"%i{value.ToUnixTimeMilliseconds()}"
           | TimeParam.Limit limit -> "limit", $"%i{limit}"
           :: current)
         []
