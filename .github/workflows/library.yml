@@ -1,0 +1,29 @@
+name: Library Build
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - Threads.Lib/**
+      - Threads.Lib.Tests/**
+  pull_request:
+    branches: [main]
+    paths:
+      - Threads.Lib/**
+      - Threads.Lib.Tests/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build dotnet 8.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet restore
+      - run: dotnet build Threads.Lib -f net8.0 --configuration Release --no-restore
+      - run: dotnet test Threads.Lib.Tests -f net8.0 --no-restore

@@ -1,0 +1,29 @@
+name: Sample Build
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - Threads.Lib/**
+      - Sample/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - Threads.Lib/**
+      - Sample/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build dotnet 8.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet restore Sample/Sample.fsproj
+      - run: dotnet build Sample/Sample.fsproj -f net8.0 --configuration Release --no-restore
