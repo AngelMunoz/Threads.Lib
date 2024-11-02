@@ -10,6 +10,8 @@
 
     <ItemGroup>
         <Compile Include="Posts.fs"/>
+        <Compile Include="Pagination.fs" />
+        <Compile Include="Media.fs" />
         <Compile Include="Program.fs"/>
     </ItemGroup>
 
