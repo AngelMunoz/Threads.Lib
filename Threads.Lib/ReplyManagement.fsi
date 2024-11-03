@@ -16,7 +16,7 @@ module ReplyManagement =
     quotaDuration: int64
   }
 
-  [<Struct>]
+  [<Struct; RequireQualifiedAccess>]
   type RateLimitFieldValue =
     | ReplyQuotaUsage of rqu: uint
     | ReplyConfig of rc: ReplyConfig

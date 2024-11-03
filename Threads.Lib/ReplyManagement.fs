@@ -30,10 +30,10 @@ module ReplyManagement =
     let Decode: Decoder<ReplyConfig> =
       Decode.object(fun get -> {
         quotaTotal = get.Required.Field "quota_total" Decode.int64
-        quotaDuration = get.Required.Field "quota_dutarion" Decode.int64
+        quotaDuration = get.Required.Field "quota_duration" Decode.int64
       })
 
-  [<Struct>]
+  [<Struct; RequireQualifiedAccess>]
   type RateLimitFieldValue =
     | ReplyQuotaUsage of rqu: uint
     | ReplyConfig of rc: ReplyConfig
@@ -148,7 +148,7 @@ module ReplyManagement =
       | MediaType -> "media_type"
       | MediaUrl -> "media_url"
       | Shortcode -> "shortcode"
-      | ThumbnailUrl -> "thuimbnail_irl"
+      | ThumbnailUrl -> "thumbnail_url"
       | Children -> "children"
       | IsQuotePost -> "is_quote_post"
       | HasReplies -> "has_replies"
@@ -159,6 +159,7 @@ module ReplyManagement =
       | HideStatus -> "hide_status"
       | ReplyAudience -> "reply_audience"
 
+  [<RequireQualifiedAccess>]
   type ReplyFieldValue =
     | Id of string
     | Text of string
@@ -182,13 +183,13 @@ module ReplyManagement =
 
   module ReplyFieldValue =
     let decodeId (get: Decode.IGetters) (values: ReplyFieldValue ResizeArray) =
-      get.Required.Field "id" Decode.string |> Id |> values.Add
+      get.Required.Field "id" Decode.string |> ReplyFieldValue.Id |> values.Add
 
       get, values
 
     let decodeText(get: Decode.IGetters, values: ReplyFieldValue ResizeArray) =
       get.Optional.Field "text" Decode.string
-      |> Option.map(Text >> values.Add)
+      |> Option.map(ReplyFieldValue.Text >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -197,7 +198,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "username" Decode.string
-      |> Option.map(Username >> values.Add)
+      |> Option.map(ReplyFieldValue.Username >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -206,7 +207,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "permalink" Decode.string
-      |> Option.map(Uri >> Permalink >> values.Add)
+      |> Option.map(Uri >> ReplyFieldValue.Permalink >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -215,7 +216,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "timestamp" Decode.datetimeOffset
-      |> Option.map(Timestamp >> values.Add)
+      |> Option.map(ReplyFieldValue.Timestamp >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -226,7 +227,7 @@ module ReplyManagement =
       get.Optional.Field "media_product_type" Decode.string
       |> Option.map(fun value ->
         match value with
-        | "THREADS" -> values.Add(MediaProductType Threads)
+        | "THREADS" -> values.Add(ReplyFieldValue.MediaProductType Threads)
         | other -> () // new value added?
       )
       |> Option.defaultValue()
@@ -239,12 +240,13 @@ module ReplyManagement =
       get.Optional.Field "media_type" Decode.string
       |> Option.map(fun value ->
         match value with
-        | "TEXT_POST" -> values.Add(MediaType TextPost)
-        | "IMAGE" -> values.Add(MediaType Image)
-        | "VIDEO" -> values.Add(MediaType Video)
-        | "CAROUSEL_ALBUM" -> values.Add(MediaType CarouselAlbum)
-        | "AUDIO" -> values.Add(MediaType Audio)
-        | "THREADS" -> values.Add(MediaProductType Threads)
+        | "TEXT_POST" -> values.Add(ReplyFieldValue.MediaType TextPost)
+        | "IMAGE" -> values.Add(ReplyFieldValue.MediaType Image)
+        | "VIDEO" -> values.Add(ReplyFieldValue.MediaType Video)
+        | "CAROUSEL_ALBUM" ->
+          values.Add(ReplyFieldValue.MediaType CarouselAlbum)
+        | "AUDIO" -> values.Add(ReplyFieldValue.MediaType Audio)
+        | "THREADS" -> values.Add(ReplyFieldValue.MediaProductType Threads)
         | other -> () // new value added?
       )
       |> Option.defaultValue()
@@ -255,7 +257,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "media_url" Decode.string
-      |> Option.map(Uri >> MediaUrl >> values.Add)
+      |> Option.map(Uri >> ReplyFieldValue.MediaUrl >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -264,7 +266,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "shortcode" Decode.string
-      |> Option.map(Shortcode >> values.Add)
+      |> Option.map(ReplyFieldValue.Shortcode >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -273,7 +275,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "thumbnail_url" Decode.string
-      |> Option.map(Uri >> ThumbnailUrl >> values.Add)
+      |> Option.map(Uri >> ReplyFieldValue.ThumbnailUrl >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -282,7 +284,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "children" (Decode.array IdLike.Decode)
-      |> Option.map(Children >> values.Add)
+      |> Option.map(ReplyFieldValue.Children >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -292,7 +294,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "is_quote_post" Decode.bool
-      |> Option.map(IsQuotePost >> values.Add)
+      |> Option.map(ReplyFieldValue.IsQuotePost >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -301,7 +303,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "has_replies" Decode.bool
-      |> Option.map(HasReplies >> values.Add)
+      |> Option.map(ReplyFieldValue.HasReplies >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -310,7 +312,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "root_post" IdLike.Decode
-      |> Option.map(RootPost >> values.Add)
+      |> Option.map(ReplyFieldValue.RootPost >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -319,7 +321,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "replied_to" IdLike.Decode
-      |> Option.map(RepliedTo >> values.Add)
+      |> Option.map(ReplyFieldValue.RepliedTo >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -328,7 +330,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "is_reply" Decode.bool
-      |> Option.map(IsReply >> values.Add)
+      |> Option.map(ReplyFieldValue.IsReply >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -337,7 +339,7 @@ module ReplyManagement =
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
       get.Optional.Field "is_reply_owned_by_me" Decode.bool
-      |> Option.map(IsReplyOwnedByMe >> values.Add)
+      |> Option.map(ReplyFieldValue.IsReplyOwnedByMe >> values.Add)
       |> Option.defaultValue()
 
       get, values
@@ -345,14 +347,14 @@ module ReplyManagement =
     let decodeHideStatus
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
-      get.Optional.Field "is_reply_owned_by_me" Decode.string
+      get.Optional.Field "hide_status" Decode.string
       |> Option.map (function
-        | "NOT_HUSHED" -> values.Add(HideStatus NotHushed)
-        | "UNHUSHED" -> values.Add(HideStatus Unhushed)
-        | "HIDDEN" -> values.Add(HideStatus Hidden)
-        | "COVERED" -> values.Add(HideStatus Covered)
-        | "BLOCKED" -> values.Add(HideStatus Blocked)
-        | "RESTRICTED" -> values.Add(HideStatus Restricted)
+        | "NOT_HUSHED" -> values.Add(ReplyFieldValue.HideStatus NotHushed)
+        | "UNHUSHED" -> values.Add(ReplyFieldValue.HideStatus Unhushed)
+        | "HIDDEN" -> values.Add(ReplyFieldValue.HideStatus Hidden)
+        | "COVERED" -> values.Add(ReplyFieldValue.HideStatus Covered)
+        | "BLOCKED" -> values.Add(ReplyFieldValue.HideStatus Blocked)
+        | "RESTRICTED" -> values.Add(ReplyFieldValue.HideStatus Restricted)
         | other -> () // new value?
       )
       |> Option.defaultValue()
@@ -362,11 +364,13 @@ module ReplyManagement =
     let decodeReplyAudience
       (get: Decode.IGetters, values: ReplyFieldValue ResizeArray)
       =
-      get.Optional.Field "is_reply_owned_by_me" Decode.string
+      get.Optional.Field "reply_audience" Decode.string
       |> Option.map (function
-        | "EVERYONE" -> values.Add(ReplyAudience Everyone)
-        | "ACCOUNTS_YOU_FOLLOW" -> values.Add(ReplyAudience AccountsYouFollow)
-        | "MENTIONED_ONLY" -> values.Add(ReplyAudience MentionedOnly)
+        | "EVERYONE" -> values.Add(ReplyFieldValue.ReplyAudience Everyone)
+        | "ACCOUNTS_YOU_FOLLOW" ->
+          values.Add(ReplyFieldValue.ReplyAudience AccountsYouFollow)
+        | "MENTIONED_ONLY" ->
+          values.Add(ReplyFieldValue.ReplyAudience MentionedOnly)
         | other -> () // new value?
       )
       |> Option.defaultValue()
@@ -482,7 +486,7 @@ module ReplyManagement =
       let! req =
 
         baseUrl
-          .AppendPathSegments(mediaId, "conversations")
+          .AppendPathSegments(mediaId, "conversation")
           .SetQueryParams(
             [
               if fields.Length > 0 then
