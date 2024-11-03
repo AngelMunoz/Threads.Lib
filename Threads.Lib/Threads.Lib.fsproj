@@ -7,9 +7,10 @@
   </PropertyGroup>
   <PropertyGroup>
     <RepositoryUrl>https://github.com/AngelMunoz/Threads.Lib</RepositoryUrl>
-    <FsDocsLicenseLink>https://github.com/AngelMunoz/Threads.Lib/blob/master/License.md</FsDocsLicenseLink>
-    <FsDocsReleaseNotesLink>https://github.com/AngelMunoz/Threads.Lib/blob/master/RELEASE_NOTES.md</FsDocsReleaseNotesLink>
+    <FsDocsLicenseLink>https://github.com/AngelMunoz/Threads.Lib/blob/main/LICENSE</FsDocsLicenseLink>
+    <FsDocsReleaseNotesLink>https://github.com/AngelMunoz/Threads.Lib/blob/main/CHANGELOG.md</FsDocsReleaseNotesLink>
     <PackageProjectUrl>https://AngelMunoz.github.io/Threads.Lib</PackageProjectUrl>
+    <ChangelogFile>../CHANGELOG.md</ChangelogFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Common.fsi" />
@@ -33,6 +34,7 @@
     <PackageReference Include="FsToolkit.ErrorHandling" Version="4.16.0" />
     <PackageReference Include="FsToolkit.ErrorHandling.TaskResult" Version="4.16.0" />
     <PackageReference Include="Thoth.Json.Net" Version="12.0.0" />
+    <PackageReference Include="Ionide.KeepAChangelog.Tasks"  Version="0.1.8" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="$(AssemblyName).Tests" />
