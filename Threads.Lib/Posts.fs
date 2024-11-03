@@ -44,6 +44,7 @@ module Posts =
     | Text of string
     | ReplyTo of string
     | ReplyControl of ReplyAudience
+    | QuotePostId of string
 
   module PostParam =
     let toStringTuple =
@@ -55,6 +56,7 @@ module Posts =
       | Text text -> "text", text
       | ReplyTo value -> "reply_to", value
       | ReplyControl value -> "reply_control", ReplyAudience.asString value
+      | QuotePostId value -> "quote_post_id", value
 
     let extractCarousel values =
       values
@@ -257,6 +259,16 @@ module Posts =
       return! result.GetJsonAsync<IdLike>() |> Async.AwaitTask
     }
 
+  let repost (baseUrl: string) (accessToken: string) (postId: string) = async {
+    let! result =
+      baseUrl
+        .AppendPathSegments(postId, "repost")
+        .SetQueryParams([ "access_token", accessToken ])
+        .PostAsync()
+      |> Async.AwaitTask
+
+    return! result.GetJsonAsync<IdLike>() |> Async.AwaitTask
+  }
 
   exception SingleContainerArgumentException of SingleContainerError
   exception CarouselItemContainerArgumentException of CarouselItemContainerError

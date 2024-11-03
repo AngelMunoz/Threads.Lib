@@ -81,6 +81,10 @@ type PostService =
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<IdLike>
 
+  abstract Repost:
+    mediaId: string * [<Optional>] ?cancellationToken: CancellationToken ->
+      Task<IdLike>
+
 type MediaService =
   abstract FetchThreads:
     profileId: string *
@@ -182,6 +186,7 @@ module Impl =
     createSingle
     createCarouselItem
     publishPost
+    repost
     =
     { new PostService with
         member _.PostCarousel
@@ -246,6 +251,12 @@ module Impl =
 
           Async.StartImmediateAsTask(
             publishPost profileId containerId,
+            ?cancellationToken = cancellationToken
+          )
+
+        member _.Repost(mediaId, [<Optional>] ?cancellationToken) =
+          Async.StartImmediateAsTask(
+            repost mediaId,
             ?cancellationToken = cancellationToken
           )
     }
@@ -410,6 +421,7 @@ type Threads =
 
     let postCarousel = Posts.createCarouselContainer baseUrl accessToken
     let publishPost = Posts.publishContainer baseUrl accessToken
+    let repost = Posts.repost baseUrl accessToken
 
     let fetchRateLimits = ReplyManagement.getRateLimits baseUrl accessToken
     let fetchReplies = ReplyManagement.getReplies baseUrl accessToken
@@ -429,6 +441,7 @@ type Threads =
             postSingle
             postCarouselItem
             publishPost
+            repost
 
         member _.Profile = Impl.getProfileService fetchProfile
 

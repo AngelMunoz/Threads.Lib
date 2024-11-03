@@ -245,6 +245,19 @@ type PostService =
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<IdLike>
 
+  /// <summary>
+  /// Reposts an existing media object.
+  /// </summary>
+  /// <param name="mediaId">The media id to repost.</param>
+  /// <param name="cancellationToken">A token to cancel the operation.</param>
+  /// <returns>The id of the reposted media object.</returns>
+  /// <remarks>
+  /// The mediaId must be that of an already published media object.
+  /// </remarks>
+  abstract Repost:
+    mediaId: string * [<Optional>] ?cancellationToken: CancellationToken ->
+      Task<IdLike>
+
 /// <summary>
 /// This service provides methods to fetch media and profile information.
 /// In the Threads API language, "Media" is the term used to describe what is commonly refered as "Post" in the threads app.

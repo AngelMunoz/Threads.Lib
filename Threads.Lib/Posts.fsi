@@ -27,6 +27,7 @@ module Posts =
     | Text of string
     | ReplyTo of string
     | ReplyControl of ReplyAudience
+    | QuotePostId of string
 
   [<Struct>]
   type SingleContainerError =
@@ -80,3 +81,6 @@ module Posts =
     userId: string ->
     containerId: IdLike ->
       Async<IdLike>
+
+  val internal repost:
+    baseUrl: string -> accessToken: string -> postId: string -> Async<IdLike>
