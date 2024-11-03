@@ -21,7 +21,7 @@ module ReplyManagement =
     | ReplyQuotaUsage of rqu: uint
     | ReplyConfig of rc: ReplyConfig
 
-  type RateLimitResponse = { data: RateLimitFieldValue seq seq }
+  type RateLimitResponse = { data: RateLimitFieldValue list list }
 
   [<Struct>]
   type MediaType =
@@ -91,7 +91,7 @@ module ReplyManagement =
     | ReplyAudience of ReplyAudience
 
   type ConversationResponse = {
-    data: ReplyFieldValue seq seq
+    data: ReplyFieldValue list list
     paging: Pagination
   }
 

@@ -14,7 +14,7 @@ module Media =
     | Audio
     | RepostFacade
 
-  type ThreadChildren = { data: IdLike seq }
+  type ThreadChildren = { data: IdLike list }
 
   [<Struct>]
   type ThreadField =
@@ -49,7 +49,7 @@ module Media =
     | IsQuotePost of bool
 
   type ThreadListResponse = {
-    data: ThreadValue seq seq
+    data: ThreadValue list list
     paging: Pagination
   }
 
@@ -66,4 +66,4 @@ module Media =
     accessToken: string ->
     threadId: string ->
     threadFields: ThreadField seq ->
-      Async<Result<ThreadValue seq, string>>
+      Async<Result<ThreadValue list, string>>

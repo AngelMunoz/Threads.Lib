@@ -19,7 +19,7 @@ module Media =
     | Audio
     | RepostFacade
 
-  type ThreadChildren = { data: IdLike seq }
+  type ThreadChildren = { data: IdLike list }
 
   module ThreadChildren =
     let Decode: Decoder<ThreadChildren> =
@@ -175,10 +175,10 @@ module Media =
 
       get, fields
 
-    let inline finish(_: Decode.IGetters, fields: _ seq) = fields
+    let inline finish(_: Decode.IGetters, fields: _ seq) = fields |> Seq.toList
 
 
-    let Decode: Decoder<ThreadValue seq> =
+    let Decode: Decoder<ThreadValue list> =
       Decode.object(fun get ->
         let fields = ResizeArray()
         fields.Add(ThreadValue.Id(get.Required.Field "id" Decode.string))
@@ -199,7 +199,7 @@ module Media =
         |> finish)
 
   type ThreadListResponse = {
-    data: ThreadValue seq seq
+    data: ThreadValue list list
     paging: Pagination
   }
 

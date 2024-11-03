@@ -91,14 +91,14 @@ type MediaService =
     threadId: string *
     [<Optional>] ?fields: Media.ThreadField seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Media.ThreadValue seq>
+      Task<Media.ThreadValue list>
 
 type ProfileService =
   abstract FetchProfile:
     profileId: string *
     [<Optional>] ?profileFields: Profiles.ProfileField seq *
     [<Optional>] ?cancelaltionToken: CancellationToken ->
-      Task<Profiles.ProfileValue seq>
+      Task<Profiles.ProfileValue list>
 
 type ThreadsClient =
   abstract Media: MediaService

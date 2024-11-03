@@ -24,4 +24,4 @@ module Profiles =
     accessToken: string ->
     profileId: string option ->
     profileFields: ProfileField seq ->
-      Async<Result<ProfileValue seq, string>>
+      Async<Result<ProfileValue list, string>>

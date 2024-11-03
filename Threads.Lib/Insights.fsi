@@ -34,13 +34,13 @@ module Insights =
   type MediaMetric =
     | Name of Metric
     | Period of Period
-    | Values of MetricValue array
+    | Values of MetricValue list
     | Title of string
     | Description of string
     | Id of string
     | TotalValue of uint
 
-  type MetricResponse = { data: MediaMetric array array }
+  type MetricResponse = { data: MediaMetric list list }
 
   [<Struct>]
   type InsightParam =
@@ -52,7 +52,7 @@ module Insights =
     baseUrl: string ->
     accessToken: string ->
     mediaId: string ->
-    metrics: Metric array ->
+    metrics: Metric seq ->
       Async<Result<MetricResponse, string>>
 
   type InsightError =
@@ -64,6 +64,6 @@ module Insights =
     baseUrl: string ->
     accessToken: string ->
     userId: string ->
-    metrics: Metric array ->
+    metrics: Metric seq ->
     insightParams: InsightParam seq ->
       Async<Result<MetricResponse, InsightError>>

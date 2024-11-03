@@ -39,7 +39,7 @@ module ReplyManagement =
     | ReplyConfig of rc: ReplyConfig
 
   module RateLimitFieldValue =
-    let Decode: Decoder<RateLimitFieldValue seq> =
+    let Decode: Decoder<RateLimitFieldValue list> =
       Decode.object(fun get ->
         let replyQuotaUsage =
           get.Optional.Field "reply_quota_usage" Decode.uint32
@@ -56,13 +56,13 @@ module ReplyManagement =
           | None -> ()
         ])
 
-  type RateLimitResponse = { data: RateLimitFieldValue seq seq }
+  type RateLimitResponse = { data: RateLimitFieldValue list list }
 
   module RateLimitResponse =
     let Decode: Decoder<RateLimitResponse> =
       Decode.object(fun get -> {
         data =
-          get.Required.Field "data" (Decode.array RateLimitFieldValue.Decode)
+          get.Required.Field "data" (Decode.list RateLimitFieldValue.Decode)
       })
 
   [<Struct>]
@@ -377,9 +377,9 @@ module ReplyManagement =
 
       get, values
 
-    let inline finish(_, values: ReplyFieldValue seq) = values
+    let inline finish(_, values: ReplyFieldValue seq) = values |> Seq.toList
 
-    let Decode: Decoder<ReplyFieldValue seq> =
+    let Decode: Decoder<ReplyFieldValue list> =
       Decode.object(fun get ->
 
         ResizeArray()
@@ -405,14 +405,14 @@ module ReplyManagement =
         |> finish)
 
   type ConversationResponse = {
-    data: ReplyFieldValue seq seq
+    data: ReplyFieldValue list list
     paging: Pagination
   }
 
   module ReplyResponse =
     let Decode: Decoder<ConversationResponse> =
       Decode.object(fun get -> {
-        data = get.Required.Field "data" (Decode.array ReplyFieldValue.Decode)
+        data = get.Required.Field "data" (Decode.list ReplyFieldValue.Decode)
         paging = get.Required.Field "paging" Pagination.Decode
       })
 

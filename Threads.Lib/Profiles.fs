@@ -66,9 +66,9 @@ module Profiles =
 
       get, fields
 
-    let inline finish(_, fields: _ seq) = fields
+    let inline finish(_, fields: _ seq) = fields |> Seq.toList
 
-    let Decode: Decoder<ProfileValue seq> =
+    let Decode: Decoder<ProfileValue list> =
       Decode.object(fun get ->
         (get, ResizeArray())
         |> decodeId

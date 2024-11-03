@@ -90,14 +90,14 @@ type MediaService =
     threadId: string *
     [<Optional>] ?fields: Media.ThreadField seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
-      Task<Media.ThreadValue seq>
+      Task<Media.ThreadValue list>
 
 type ProfileService =
   abstract FetchProfile:
     profileId: string *
     [<Optional>] ?profileFields: Profiles.ProfileField seq *
     [<Optional>] ?cancelaltionToken: CancellationToken ->
-      Task<Profiles.ProfileValue seq>
+      Task<Profiles.ProfileValue list>
 
 
 type ThreadsClient =
@@ -454,26 +454,26 @@ type Threads =
     let fetchUserInsights = Insights.getUserInsights baseUrl accessToken
     let fetchMediaInsights = Insights.getMediaInsights baseUrl accessToken
 
-    let profile = Impl.getProfileService fetchProfile
-    let media = Impl.getMediaService fetchThread fetchThreads
-
-    let posts =
-      Impl.getPostService postCarousel postSingle postCarouselItem publishPost
-
-    let replies =
-      Impl.getReplyManagement
-        manageReply
-        fetchRateLimits
-        fetchConvos
-        fetchReplies
-        allUserReplies
-
-    let insights = Impl.getInsights fetchUserInsights fetchMediaInsights
-
     { new ThreadsClient with
-        member _.Media = media
-        member _.Posts = posts
-        member _.Profile = profile
-        member _.Replies = replies
-        member _.Insights = insights
+        member _.Media = Impl.getMediaService fetchThread fetchThreads
+
+        member _.Posts =
+          Impl.getPostService
+            postCarousel
+            postSingle
+            postCarouselItem
+            publishPost
+
+        member _.Profile = Impl.getProfileService fetchProfile
+
+        member _.Replies =
+          Impl.getReplyManagement
+            manageReply
+            fetchRateLimits
+            fetchConvos
+            fetchReplies
+            allUserReplies
+
+        member _.Insights =
+          Impl.getInsights fetchUserInsights fetchMediaInsights
     }

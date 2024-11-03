@@ -92,7 +92,7 @@ module Insights =
   type MediaMetric =
     | Name of Metric
     | Period of Period
-    | Values of MetricValue array
+    | Values of MetricValue list
     | Title of string
     | Description of string
     | Id of string
@@ -104,31 +104,29 @@ module Insights =
     let decodeTotalValue: Decoder<uint> =
       Decode.object(fun get -> get.Required.Field "total_value" Decode.uint32)
 
-    let Decode: Decoder<MediaMetric array> =
-      Decode.object(fun get -> [|
+    let Decode: Decoder<MediaMetric list> =
+      Decode.object(fun get -> [
         get.Required.Field "name" Metric.Decode |> Name
         get.Required.Field "period" Period.Decode |> Period
         get.Required.Field "title" Decode.string |> Title
         get.Required.Field "description" Decode.string |> Description
         get.Required.Field "id" Decode.string |> Id
-        match
-          get.Optional.Field "values" (Decode.array MetricValue.Decode)
-        with
+        match get.Optional.Field "values" (Decode.list MetricValue.Decode) with
         | Some v -> Values v
         | None -> ()
 
         match get.Optional.Field "total_value" decodeTotalValue with
         | Some v -> TotalValue v
         | None -> ()
-      |])
+      ])
 
-  type MetricResponse = { data: MediaMetric array array }
+  type MetricResponse = { data: MediaMetric list list }
 
   module MediaMetricResponse =
 
     let Decode: Decoder<MetricResponse> =
       Decode.object(fun get -> {
-        data = get.Required.Field "data" (Decode.array MediaMetric.Decode)
+        data = get.Required.Field "data" (Decode.list MediaMetric.Decode)
       })
 
   [<Struct>]
@@ -141,10 +139,11 @@ module Insights =
     (baseUrl: string)
     accessToken
     (mediaId: string)
-    (metrics: Metric array)
+    (metrics: Metric seq)
     =
     async {
       let! req =
+        let metrics = Seq.toArray metrics
 
         baseUrl
           .AppendPathSegments(mediaId, "threads_insights")
@@ -172,11 +171,12 @@ module Insights =
     (baseUrl: string)
     accessToken
     (userId: string)
-    (metrics: Metric array)
+    (metrics: Metric seq)
     insightParams
     =
     asyncResult {
       let insightParams = Array.ofSeq insightParams
+      let metrics = Seq.toArray metrics
 
       let extractSince insightParams =
         insightParams
