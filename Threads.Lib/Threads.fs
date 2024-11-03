@@ -99,10 +99,10 @@ type ProfileService =
   abstract FetchProfile:
     profileId: string *
     [<Optional>] ?profileFields: Profiles.ProfileField seq *
-    [<Optional>] ?cancelaltionToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Profiles.ProfileValue list>
 
-
+[<Interface>]
 type ThreadsClient =
   abstract Media: MediaService
   abstract Posts: PostService

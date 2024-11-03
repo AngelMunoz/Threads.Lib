@@ -216,6 +216,7 @@ type PostService =
   /// </summary>
   /// <param name="profileId">The profile's id to create the media container for.</param>
   /// <param name="children">The media container ids to create the carousel container with.</param>
+  /// <param name="textContent">The text content to create the carousel container with.</param>
   /// <param name="cancellationToken">A token to cancel the operation.</param>
   /// <returns>The id of the created media container.</returns>
   abstract PostCarousel:
@@ -241,7 +242,20 @@ type PostService =
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<IdLike>
 
+/// <summary>
+/// This service provides methods to fetch media and profile information.
+/// In the Threads API language, "Media" is the term used to describe what is commonly refered as "Post" in the threads app.
+/// </summary>
 type MediaService =
+
+  /// <summary>
+  /// Fetch the threads of the supplied profile.
+  /// </summary>
+  /// <param name="profileId">Profile to fetch threads from.</param>
+  /// <param name="fields">The fields to fetch threads with.</param>
+  /// <param name="pagination">The pagination to fetch threads with.</param>
+  /// <param name="cancellationToken">A token to cancel the operation.</param>
+  /// <returns>The fetched media object.</returns>
   abstract FetchThreads:
     profileId: string *
     [<Optional>] ?fields: Media.ThreadField seq *
@@ -249,27 +263,95 @@ type MediaService =
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Media.ThreadListResponse>
 
+  /// <summary>
+  /// Fetch the media object of the supplied media id.
+  /// </summary>
+  /// <param name="threadId">The media id to fetch.</param>
+  /// <param name="fields">The fields to fetch the media object with.</param>
+  /// <param name="cancellationToken">A token to cancel the operation.</param>
+  /// <returns>The fetched media object.</returns>
   abstract FetchThread:
     threadId: string *
     [<Optional>] ?fields: Media.ThreadField seq *
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Media.ThreadValue list>
 
+/// <summary>
+/// Provides means to obtain the profile information about a Threads user.
+/// </summary>
 type ProfileService =
+
+  /// <summary>
+  /// Fetch the profile information of the supplied profile id.
+  /// </summary>
+  /// <param name="profileId">The profile id to fetch.</param>
+  /// <param name="profileFields">The fields to fetch the profile object with.</param>
+  /// <param name="cancellationToken">A token to cancel the operation.</param>
+  /// <returns>The fetched profile object.</returns>
   abstract FetchProfile:
     profileId: string *
     [<Optional>] ?profileFields: Profiles.ProfileField seq *
-    [<Optional>] ?cancelaltionToken: CancellationToken ->
+    [<Optional>] ?cancellationToken: CancellationToken ->
       Task<Profiles.ProfileValue list>
 
+/// <summary>
+/// A raw client that groups all the services together.
+/// </summary>
+[<Interface>]
 type ThreadsClient =
+
+  /// <summary>
+  /// This service provides methods to fetch media and profile information.
+  /// In the Threads API language, "Media" is the term used to describe what is commonly refered as "Post" in the threads app.
+  /// </summary>
   abstract Media: MediaService
+  /// <summary>
+  /// You can use the Threads API to publish image, video, text, or carousel posts.
+  ///
+  /// Publishing a single image, video, or text post is a two-step process:
+  /// 1. Use the <see cref="T:Threads.Lib.PostService.PostContainer">PostContainer</see> methid to ceate a media container using an image or video hosted on your public server and optional text. Alternatively, use this method to create a media container with text only.
+  /// 2. Use the <see cref="T:Threads.Lib.PostService.PublishPost">PublishPost</see> method to publish the media container.
+  ///
+  /// For carousel posts, you may publish up to 20 images, videos, or a mix of the two in a carousel post. Publishing carousels is a three-step process:
+  ///
+  /// 1. Use the <see cref="T:Threads.Lib.PostService.PostCarouselItemContainer">PostCarouselItemContainer</see> method to create a media container for each image or video in the carousel.
+  /// 2. Use the <see cref="T:Threads.Lib.PostService.PostCarousel">PostCarousel</see> method to create a carousel container with the media container ids and optional text.
+  /// 3. Use the <see cref="T:Threads.Lib.PostService.PublishPost">PublishPost</see> method with the id returned from the <see cref="T:Threads.Lib.PostService.PostCarousel">PostCarousel</see> method to publish the carousel.
+  ///
+  /// Carousel posts count as a single post against the profile's
+  ///
+  /// Limitations:
+  /// - Carousels are limited to 20 images, videos, or a mix of the two.
+  /// - Carousels require a minimum of two children.
+  /// </summary>
   abstract Posts: PostService
+
+  /// <summary>
+  /// Provides means to obtain the profile information about a Threads user.
+  /// </summary>
   abstract Profile: ProfileService
+  /// <summary>
+  /// The Threads Reply Management API allows you to read and manage replies to users' own Threads.
+  ///
+  /// Replying to a post is a two-step process: first you need to create a media object with the <see cref="T:Threads.Lib.Posts.PostParam.ReplyTo">ReplyTo</see> parameter to obtain its id, then you have to publish that media object.
+  /// For more information please see the <seealso cref="T:Threads.Lib.PostService">PostService</seealso> on how to create media objects and publish them.
+  /// </summary>
   abstract Replies: ReplyManagementService
+  /// <summary>
+  /// The Threads Insights API allows you to read the insights from users' own Threads.
+  /// The Threads Insights API requires an appropriate access token and permissions based on the node you are targeting.
+  /// </summary>
+  /// <remarks>
+  /// In the Threads API language, "Media" is the term used to describe what is commonly refered as "Post" in the threads app.
+  /// </remarks>
   abstract Insights: InsightsService
 
 [<Class>]
 type Threads =
+  /// <summary>
+  /// Orchestrates the Threads API services.
+  /// </summary>
+  /// <param name="accessToken">The access token to authenticate with.</param>
+  /// <param name="baseUrl">The base URL to use for the API.</param>
   static member Create:
     accessToken: string * [<Optional>] ?baseUrl: string -> ThreadsClient
