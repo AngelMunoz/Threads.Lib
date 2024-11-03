@@ -17,6 +17,8 @@ module Posts =
     | AccountsYouFollow
     | MentionedOnly
 
+  /// Represents a strongly typed version of a media post.
+  /// This Union represents what can be requested from the Threads API.
   type PostParam =
     | CarouselItem
     | ImageUrl of Uri
@@ -33,6 +35,8 @@ module Posts =
     | IsVideoButNoVideoProvided
     | IsTextButNoTextProvided
 
+  exception SingleContainerArgumentException of SingleContainerError
+
   val internal createSingleContainer:
     baseUrl: string ->
     accessToken: string ->
@@ -46,6 +50,8 @@ module Posts =
     | IsImageButImageNotProvided
     | IsVideoButNoVideoProvided
 
+  exception CarouselItemContainerArgumentException of CarouselItemContainerError
+
   val internal createCarouselItemContainer:
     baseUrl: string ->
     accessToken: string ->
@@ -57,6 +63,8 @@ module Posts =
   type CarouselContainerError =
     | ChildLimitExceeded
     | CarouselPostIsEmpty
+
+  exception CarouselContainerArgumentException of CarouselContainerError
 
   val internal createCarouselContainer:
     baseUrl: string ->

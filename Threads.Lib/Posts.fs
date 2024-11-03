@@ -36,7 +36,6 @@ module Posts =
       | AccountsYouFollow -> "accounts_you_follow"
       | MentionedOnly -> "mentioned_only"
 
-
   type PostParam =
     | CarouselItem
     | ImageUrl of Uri
@@ -98,7 +97,6 @@ module Posts =
     | IsImageButImageNotProvided
     | IsVideoButNoVideoProvided
     | IsTextButNoTextProvided
-
 
   let createSingleContainer
     (baseUrl: string)
@@ -258,3 +256,8 @@ module Posts =
 
       return! result.GetJsonAsync<IdLike>() |> Async.AwaitTask
     }
+
+
+  exception SingleContainerArgumentException of SingleContainerError
+  exception CarouselItemContainerArgumentException of CarouselItemContainerError
+  exception CarouselContainerArgumentException of CarouselContainerError

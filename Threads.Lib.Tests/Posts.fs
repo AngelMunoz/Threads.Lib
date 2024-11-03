@@ -152,12 +152,12 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
+        Assert.ThrowsExceptionAsync<SingleContainerArgumentException>(fun () ->
           threads.Posts.PostContainer("me", [ MediaType Image ]))
 
       Assert.AreEqual(
-        nameof(SingleContainerError.IsImageButImageNotProvided),
-        response.Message
+        typeof<SingleContainerArgumentException>,
+        response.GetType()
       )
 
     }
@@ -176,12 +176,12 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
+        Assert.ThrowsExceptionAsync<SingleContainerArgumentException>(fun () ->
           threads.Posts.PostContainer("me", [ MediaType Video ]))
 
       Assert.AreEqual(
-        nameof(SingleContainerError.IsVideoButNoVideoProvided),
-        response.Message
+        typeof<SingleContainerArgumentException>,
+        response.GetType()
       )
     }
 
@@ -199,12 +199,12 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
+        Assert.ThrowsExceptionAsync<SingleContainerArgumentException>(fun () ->
           threads.Posts.PostContainer("me", [ MediaType MediaType.Text ]))
 
       Assert.AreEqual(
-        nameof(SingleContainerError.IsTextButNoTextProvided),
-        response.Message
+        typeof<SingleContainerArgumentException>,
+        response.GetType()
       )
     }
 
@@ -222,10 +222,13 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
+        Assert.ThrowsExceptionAsync<SingleContainerArgumentException>(fun () ->
           threads.Posts.PostContainer("me", [ MediaType Carousel ]))
 
-      Assert.AreEqual(nameof(IsCarouselInSingleContainer), response.Message)
+      Assert.AreEqual(
+        typeof<SingleContainerArgumentException>,
+        response.GetType()
+      )
     }
 
   [<TestMethod>]
@@ -322,12 +325,13 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
-          threads.Posts.PostCarouselItemContainer("me", [ MediaType Image ]))
+        Assert.ThrowsExceptionAsync<CarouselItemContainerArgumentException>
+          (fun () ->
+            threads.Posts.PostCarouselItemContainer("me", [ MediaType Image ]))
 
       Assert.AreEqual(
-        nameof(CarouselItemContainerError.IsImageButImageNotProvided),
-        response.Message
+        typeof<CarouselItemContainerArgumentException>,
+        response.GetType()
       )
     }
 
@@ -345,12 +349,13 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
-          threads.Posts.PostCarouselItemContainer("me", [ MediaType Video ]))
+        Assert.ThrowsExceptionAsync<CarouselItemContainerArgumentException>
+          (fun () ->
+            threads.Posts.PostCarouselItemContainer("me", [ MediaType Video ]))
 
       Assert.AreEqual(
-        nameof(CarouselItemContainerError.IsVideoButNoVideoProvided),
-        response.Message
+        typeof<CarouselItemContainerArgumentException>,
+        response.GetType()
       )
     }
 
@@ -368,15 +373,16 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
-          threads.Posts.PostCarouselItemContainer(
-            "me",
-            [ Text "Hello, World!" ]
-          ))
+        Assert.ThrowsExceptionAsync<CarouselItemContainerArgumentException>
+          (fun () ->
+            threads.Posts.PostCarouselItemContainer(
+              "me",
+              [ Text "Hello, World!" ]
+            ))
 
       Assert.AreEqual(
-        nameof(CarouselItemContainerError.MediaTypeMustbeVideoOrImage),
-        response.Message
+        typeof<CarouselItemContainerArgumentException>,
+        response.GetType()
       )
     }
 
@@ -492,12 +498,12 @@ type PostsTestsClass() =
       let threads = Threads.Lib.Threads.Create("fake_token")
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
-          threads.Posts.PostCarousel("me", []))
+        Assert.ThrowsExceptionAsync<CarouselContainerArgumentException>
+          (fun () -> threads.Posts.PostCarousel("me", []))
 
       Assert.AreEqual(
-        nameof(CarouselContainerError.CarouselPostIsEmpty),
-        response.Message
+        typeof<CarouselContainerArgumentException>,
+        response.GetType()
       )
     }
 
@@ -517,12 +523,12 @@ type PostsTestsClass() =
       let children = [ for _ in 0..21 -> { id = Guid.NewGuid().ToString() } ]
 
       let! response =
-        Assert.ThrowsExceptionAsync<Exception>(fun () ->
-          threads.Posts.PostCarousel("me", children))
+        Assert.ThrowsExceptionAsync<CarouselContainerArgumentException>
+          (fun () -> threads.Posts.PostCarousel("me", children))
 
       Assert.AreEqual(
-        nameof(CarouselContainerError.ChildLimitExceeded),
-        response.Message
+        typeof<CarouselContainerArgumentException>,
+        response.GetType()
       )
     }
 
