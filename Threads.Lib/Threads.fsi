@@ -4,7 +4,7 @@ open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
 
-open Threads.Lib.Common
+
 
 /// <summary>
 /// The Threads Insights API allows you to read the insights from users' own Threads.

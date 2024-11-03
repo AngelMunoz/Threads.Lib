@@ -3,6 +3,20 @@ namespace Threads.Lib
 open System
 open Thoth.Json.Net
 
+[<Struct>]
+type IdLike = { id: string }
+
+module internal IdLike =
+
+  val Decode: Decoder<IdLike>
+
+[<Struct>]
+type MediaProductType = | Threads
+
+module internal MediaProductType =
+  val asString: MediaProductType -> string
+
+
 type Cursor = { before: string; after: string }
 
 module internal Cursor =

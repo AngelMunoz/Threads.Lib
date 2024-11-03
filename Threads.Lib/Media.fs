@@ -6,8 +6,6 @@ open Thoth.Json.Net
 open Flurl
 open Flurl.Http
 
-open Threads.Lib.Common
-
 module Media =
 
   [<Struct>]

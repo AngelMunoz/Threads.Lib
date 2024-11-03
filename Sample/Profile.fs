@@ -18,7 +18,7 @@ open Navs
 open Navs.Avalonia
 
 open Threads.Lib
-open Threads.Lib.Common
+
 open Threads.Lib.Profiles
 
 module Profile =

@@ -3,7 +3,7 @@ namespace Threads.Lib
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
-open Threads.Lib.Common
+
 
 type InsightsService =
   abstract FetchMediaInsights:

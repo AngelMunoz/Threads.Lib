@@ -11,7 +11,7 @@ open Flurl.Http
 open Flurl.Http.Testing
 
 open Threads.Lib
-open Threads.Lib.Common
+
 open Threads.Lib.Profiles
 
 [<TestClass>]
