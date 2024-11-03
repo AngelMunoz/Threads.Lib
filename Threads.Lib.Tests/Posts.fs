@@ -6,6 +6,7 @@ open Flurl.Util
 open Microsoft.VisualStudio.TestTools.UnitTesting
 open Flurl.Http.Testing
 
+open Threads.Lib
 open Threads.Lib.Posts
 
 

@@ -10,7 +10,6 @@ open Flurl.Http
 open Flurl.Http.Testing
 
 open Threads.Lib
-
 open Threads.Lib.ReplyManagement
 
 
@@ -182,7 +181,7 @@ type ReplyManagementTests() =
         ReplyFieldValue.Timestamp(
           DateTimeOffset.Parse("2024-01-01T18:20:00+0000")
         )
-        ReplyFieldValue.MediaProductType Threads
+        ReplyFieldValue.MediaProductType MediaProductType.Threads
         ReplyFieldValue.MediaType TextPost
         ReplyFieldValue.MediaUrl(Uri("https://example.com"))
         ReplyFieldValue.Shortcode "abcdefg"
@@ -285,7 +284,7 @@ type ReplyManagementTests() =
       ReplyFieldValue.Timestamp(
         DateTimeOffset.Parse("2024-01-01T18:20:00+0000")
       )
-      ReplyFieldValue.MediaProductType Threads
+      ReplyFieldValue.MediaProductType MediaProductType.Threads
       ReplyFieldValue.MediaType TextPost
       ReplyFieldValue.Shortcode "abcdefg"
       ReplyFieldValue.HasReplies true
@@ -377,7 +376,7 @@ type ReplyManagementTests() =
         ReplyFieldValue.Timestamp(
           DateTimeOffset.Parse("2024-01-01T18:20:00+0000")
         )
-        ReplyFieldValue.MediaProductType Threads
+        ReplyFieldValue.MediaProductType MediaProductType.Threads
         ReplyFieldValue.MediaType TextPost
         ReplyFieldValue.Shortcode "abcdefg"
         ReplyFieldValue.HasReplies true

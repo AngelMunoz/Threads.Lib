@@ -92,7 +92,8 @@ module Media =
 
     let decodeMediaProductType(get: Decode.IGetters, fields: _ ResizeArray) =
       match get.Optional.Field "media_product_type" Decode.string with
-      | Some "THREADS" -> ThreadValue.MediaProductType Threads |> fields.Add
+      | Some "THREADS" ->
+        ThreadValue.MediaProductType MediaProductType.Threads |> fields.Add
       | Some value -> () // new value added?
       | None -> ()
 

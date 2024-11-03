@@ -10,7 +10,7 @@ module internal IdLike =
 
   val Decode: Decoder<IdLike>
 
-[<Struct>]
+[<Struct; RequireQualifiedAccess>]
 type MediaProductType = | Threads
 
 module internal MediaProductType =

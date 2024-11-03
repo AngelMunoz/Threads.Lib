@@ -227,7 +227,8 @@ module ReplyManagement =
       get.Optional.Field "media_product_type" Decode.string
       |> Option.map(fun value ->
         match value with
-        | "THREADS" -> values.Add(ReplyFieldValue.MediaProductType Threads)
+        | "THREADS" ->
+          values.Add(ReplyFieldValue.MediaProductType MediaProductType.Threads)
         | other -> () // new value added?
       )
       |> Option.defaultValue()
@@ -246,7 +247,8 @@ module ReplyManagement =
         | "CAROUSEL_ALBUM" ->
           values.Add(ReplyFieldValue.MediaType CarouselAlbum)
         | "AUDIO" -> values.Add(ReplyFieldValue.MediaType Audio)
-        | "THREADS" -> values.Add(ReplyFieldValue.MediaProductType Threads)
+        | "THREADS" ->
+          values.Add(ReplyFieldValue.MediaProductType MediaProductType.Threads)
         | other -> () // new value added?
       )
       |> Option.defaultValue()
