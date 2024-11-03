@@ -177,7 +177,12 @@ module Impl =
           )
     }
 
-  let getPostService postCarousel postSingle postCarouselItem publishPost =
+  let getPostService
+    createCarousel
+    createSingle
+    createCarouselItem
+    publishPost
+    =
     { new PostService with
         member _.PostCarousel
           (
@@ -189,20 +194,10 @@ module Impl =
 
           let work = async {
 
-            match! postCarousel profileId children textContent with
+            match! createCarousel profileId children textContent with
             | Ok value -> return value
             | Error err ->
-              match err with
-              | Posts.CarouselContainerError.CarouselPostIsEmpty ->
-                return
-                  nameof(Posts.CarouselContainerError.CarouselPostIsEmpty)
-                  |> exn
-                  |> raise
-              | Posts.CarouselContainerError.ChildLimitExceeded ->
-                return
-                  nameof(Posts.CarouselContainerError.ChildLimitExceeded)
-                  |> exn
-                  |> raise
+              return Posts.CarouselContainerArgumentException err |> raise
           }
 
           Async.StartImmediateAsTask(
@@ -215,30 +210,10 @@ module Impl =
           =
 
           let work = async {
-            match! postSingle profileId postParams with
+            match! createSingle profileId postParams with
             | Ok value -> return value
             | Error err ->
-              match err with
-              | Posts.SingleContainerError.IsCarouselInSingleContainer ->
-                return
-                  nameof(Posts.SingleContainerError.IsCarouselInSingleContainer)
-                  |> exn
-                  |> raise
-              | Posts.SingleContainerError.IsImageButImageNotProvided ->
-                return
-                  nameof(Posts.SingleContainerError.IsImageButImageNotProvided)
-                  |> exn
-                  |> raise
-              | Posts.SingleContainerError.IsTextButNoTextProvided ->
-                return
-                  nameof(Posts.SingleContainerError.IsTextButNoTextProvided)
-                  |> exn
-                  |> raise
-              | Posts.SingleContainerError.IsVideoButNoVideoProvided ->
-                return
-                  nameof(Posts.SingleContainerError.IsVideoButNoVideoProvided)
-                  |> exn
-                  |> raise
+              return Posts.SingleContainerArgumentException err |> raise
           }
 
           Async.StartImmediateAsTask(
@@ -251,28 +226,10 @@ module Impl =
           =
 
           let work = async {
-            match! postCarouselItem profileId postParams with
+            match! createCarouselItem profileId postParams with
             | Ok value -> return value
             | Error err ->
-              match err with
-              | Posts.CarouselItemContainerError.IsImageButImageNotProvided ->
-                return
-                  nameof
-                    Posts.CarouselItemContainerError.IsImageButImageNotProvided
-                  |> exn
-                  |> raise
-              | Posts.CarouselItemContainerError.IsVideoButNoVideoProvided ->
-                return
-                  nameof
-                    Posts.CarouselItemContainerError.IsVideoButNoVideoProvided
-                  |> exn
-                  |> raise
-              | Posts.CarouselItemContainerError.MediaTypeMustbeVideoOrImage ->
-                return
-                  nameof
-                    Posts.CarouselItemContainerError.MediaTypeMustbeVideoOrImage
-                  |> exn
-                  |> raise
+              return Posts.CarouselItemContainerArgumentException err |> raise
           }
 
           Async.StartImmediateAsTask(

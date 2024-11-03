@@ -3,6 +3,8 @@ namespace Threads.Lib
 open System
 open Thoth.Json.Net
 
+/// Many of the responses have a record with a single field `id` which is a string.
+/// This type is used to represent that.
 [<Struct>]
 type IdLike = { id: string }
 

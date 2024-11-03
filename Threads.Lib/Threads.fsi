@@ -184,6 +184,7 @@ type PostService =
   /// - <see cref="T:Threads.Lib.Posts.PostParam.MediaType">MediaType</see> for posts, note that Carousel is not supported for this method.
   /// - <see cref="T:Threads.Lib.Posts.PostParam.Text">Text</see> for text only posts.
   /// </remarks>
+  /// <exception cref="T:Threads.Lib.Posts.SingleContainerArgumentException">Thrown when the post parameters are invalid.</exception>
   abstract PostContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
@@ -205,6 +206,7 @@ type PostService =
   /// - <see cref="T:Threads.Lib.Posts.PostParam.MediaType">MediaType</see> for posts, note that Carousel is not supported for this method.
   /// - <see cref="T:Threads.Lib.Posts.PostParam.Text">Text</see> for text only posts.
   /// </remarks>
+  /// <exception cref="T:Threads.Lib.Posts.CarouselItemContainerArgumentException">Thrown when the post parameters are invalid.</exception>
   abstract PostCarouselItemContainer:
     profileId: string *
     postParams: Posts.PostParam seq *
@@ -219,6 +221,7 @@ type PostService =
   /// <param name="textContent">The text content to create the carousel container with.</param>
   /// <param name="cancellationToken">A token to cancel the operation.</param>
   /// <returns>The id of the created media container.</returns>
+  /// <exception cref="T:Threads.Lib.Posts.CarouselContainerArgumentException">Thrown when the post parameters are invalid.</exception>
   abstract PostCarousel:
     profileId: string *
     children: IdLike seq *

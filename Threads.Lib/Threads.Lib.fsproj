@@ -12,8 +12,8 @@
     <PackageProjectUrl>https://AngelMunoz.github.io/Threads.Lib</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Pagination.fsi" />
-    <Compile Include="Pagination.fs" />
+    <Compile Include="Common.fsi" />
+    <Compile Include="Common.fs" />
     <Compile Include="Posts.fsi" />
     <Compile Include="Posts.fs" />
     <Compile Include="Media.fsi" />
