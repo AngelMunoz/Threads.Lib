@@ -542,12 +542,11 @@ module ReplyManagement =
         .PostAsync()
       |> Async.AwaitTask
 
-    let! res = req.GetJsonAsync<Map<string, obj>>() |> Async.AwaitTask
+    let! res = req.GetJsonAsync<Text.Json.JsonDocument>() |> Async.AwaitTask
 
     return
-      res
-      |> Map.tryFind "success"
-      |> Option.map(fun v -> (unbox<string> v) = "true")
-      |> Option.defaultValue false
+      match res.RootElement.TryGetProperty("success") with
+      | true, value -> value.GetBoolean()
+      | _ -> false
 
   }
