@@ -83,10 +83,7 @@ module Profiles =
       |> Seq.map ProfileField.asString
       |> (fun f -> String.Join(",", f))
 
-    let profileId =
-      match profileId with
-      | Some id -> id
-      | None -> "me"
+    let profileId = defaultArg profileId "me"
 
     let! req =
       baseUrl
