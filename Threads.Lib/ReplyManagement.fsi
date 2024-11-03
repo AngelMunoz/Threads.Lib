@@ -107,14 +107,16 @@ module ReplyManagement =
     accessToken: string ->
     mediaId: string ->
     fields: ReplyField seq ->
+    pagination: PaginationKind option ->
     reverse: bool ->
       Async<Result<ConversationResponse, string>>
 
-  val internal getConversations:
+  val internal getConversation:
     baseUrl: string ->
     accessToken: string ->
     mediaId: string ->
     fields: ReplyField seq ->
+    pagination: PaginationKind option ->
     reverse: bool ->
       Async<Result<ConversationResponse, string>>
 
@@ -123,6 +125,7 @@ module ReplyManagement =
     accessToken: string ->
     userId: string ->
     fields: ReplyField seq ->
+    pagination: PaginationKind option ->
       Async<Result<ConversationResponse, string>>
 
   val internal manageReply:

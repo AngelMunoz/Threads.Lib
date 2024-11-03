@@ -446,10 +446,13 @@ module ReplyManagement =
     accessToken
     (mediaId: string)
     fields
+    pagination
     reverse
     =
     async {
       let fields = fields |> Seq.toList
+
+      let pagination = pagination |> Option.map PaginationKind.toStringTuple
 
       let! req =
 
@@ -462,6 +465,9 @@ module ReplyManagement =
                 "fields", String.Join(",", values)
               if reverse then
                 "reverse", "true"
+              match pagination with
+              | Some values -> yield! values
+              | None -> ()
               "access_token", accessToken
             ]
           )
@@ -473,15 +479,18 @@ module ReplyManagement =
       return Decode.fromString ReplyResponse.Decode res
     }
 
-  let getConversations
+  let getConversation
     (baseUrl: string)
     accessToken
     (mediaId: string)
     fields
+    pagination
     reverse
     =
     async {
       let fields = fields |> Seq.toList
+
+      let pagination = pagination |> Option.map PaginationKind.toStringTuple
 
       let! req =
 
@@ -494,6 +503,9 @@ module ReplyManagement =
                 "fields", String.Join(",", values)
               if reverse then
                 "reverse", "true"
+              match pagination with
+              | Some values -> yield! values
+              | None -> ()
               "access_token", accessToken
             ]
           )
@@ -505,28 +517,42 @@ module ReplyManagement =
       return Decode.fromString ReplyResponse.Decode res
     }
 
-  let getUserReplies (baseUrl: string) accessToken (userId: string) fields = async {
-    let fields = fields |> Seq.toList
+  let getUserReplies
+    (baseUrl: string)
+    accessToken
+    (userId: string)
+    fields
+    pagination
+    =
+    async {
+      let fields = fields |> Seq.toList
 
-    let! req =
+      let pagination = pagination |> Option.map PaginationKind.toStringTuple
 
-      baseUrl
-        .AppendPathSegments(userId, "replies")
-        .SetQueryParams(
-          [
-            if fields.Length > 0 then
-              let values = fields |> List.map ReplyField.asString
-              "fields", String.Join(",", values)
-            "access_token", accessToken
-          ]
-        )
-        .GetAsync()
-      |> Async.AwaitTask
+      let! req =
 
-    let! res = req.GetStringAsync() |> Async.AwaitTask
+        baseUrl
+          .AppendPathSegments(userId, "replies")
+          .SetQueryParams(
+            [
+              if fields.Length > 0 then
+                let values = fields |> List.map ReplyField.asString
+                "fields", String.Join(",", values)
 
-    return Decode.fromString ReplyResponse.Decode res
-  }
+              match pagination with
+              | Some values -> yield! values
+              | None -> ()
+
+              "access_token", accessToken
+            ]
+          )
+          .GetAsync()
+        |> Async.AwaitTask
+
+      let! res = req.GetStringAsync() |> Async.AwaitTask
+
+      return Decode.fromString ReplyResponse.Decode res
+    }
 
   let manageReply (baseUrl: string) accessToken (replyId: string) shouldHide = async {
     let! req =
@@ -548,5 +574,4 @@ module ReplyManagement =
       match res.RootElement.TryGetProperty("success") with
       | true, value -> value.GetBoolean()
       | _ -> false
-
   }

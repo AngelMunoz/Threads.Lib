@@ -29,6 +29,7 @@ type ReplyManagementService =
   abstract FetchReplies:
     mediaId: string *
     [<Optional>] ?fields: ReplyManagement.ReplyField seq *
+    [<Optional>] ?pagination: PaginationKind *
     [<Optional>] ?reverse: bool *
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
@@ -36,6 +37,7 @@ type ReplyManagementService =
   abstract FetchConversation:
     mediaId: string *
     [<Optional>] ?fields: ReplyManagement.ReplyField seq *
+    [<Optional>] ?pagination: PaginationKind *
     [<Optional>] ?reverse: bool *
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
@@ -43,6 +45,7 @@ type ReplyManagementService =
   abstract FetchUserReplies:
     userId: string *
     [<Optional>] ?fields: ReplyManagement.ReplyField seq *
+    [<Optional>] ?pagination: PaginationKind *
     [<Optional>] ?cancellationToken: CancellationToken ->
       Task<ReplyManagement.ConversationResponse>
 
@@ -302,6 +305,7 @@ module Impl =
           (
             mediaId,
             [<Optional>] ?fields,
+            [<Optional>] ?pagination,
             [<Optional>] ?reverse,
             [<Optional>] ?cancellationToken
           ) =
@@ -309,7 +313,7 @@ module Impl =
           let fields = defaultArg fields Seq.empty
 
           let work = async {
-            match! fetchConvos mediaId fields reverse with
+            match! fetchConvos mediaId fields pagination reverse with
             | Ok result -> return result
             | Error err -> return err |> exn |> raise
           }
@@ -341,6 +345,7 @@ module Impl =
           (
             mediaId,
             [<Optional>] ?fields,
+            [<Optional>] ?pagination,
             [<Optional>] ?reverse,
             [<Optional>] ?cancellationToken
           ) =
@@ -348,7 +353,7 @@ module Impl =
           let reverse = defaultArg reverse false
 
           let work = async {
-            match! fetchReplies mediaId fields reverse with
+            match! fetchReplies mediaId fields pagination reverse with
             | Ok value -> return value
             | Error err -> return err |> exn |> raise
           }
@@ -359,12 +364,16 @@ module Impl =
           )
 
         member _.FetchUserReplies
-          (userId, [<Optional>] ?fields, [<Optional>] ?cancellationToken)
-          =
+          (
+            userId,
+            [<Optional>] ?fields,
+            [<Optional>] ?pagination,
+            [<Optional>] ?cancellationToken
+          ) =
           let fields = defaultArg fields Seq.empty
 
           let work = async {
-            match! allUserReplies userId fields with
+            match! allUserReplies userId fields pagination with
             | Ok value -> return value
             | Error err -> return err |> exn |> raise
           }
@@ -447,7 +456,7 @@ type Threads =
 
     let fetchRateLimits = ReplyManagement.getRateLimits baseUrl accessToken
     let fetchReplies = ReplyManagement.getReplies baseUrl accessToken
-    let fetchConvos = ReplyManagement.getConversations baseUrl accessToken
+    let fetchConvos = ReplyManagement.getConversation baseUrl accessToken
     let allUserReplies = ReplyManagement.getUserReplies baseUrl accessToken
     let manageReply = ReplyManagement.manageReply baseUrl accessToken
 
