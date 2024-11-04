@@ -7,6 +7,45 @@ open IcedTasks.Polyfill.Async
 open IcedTasks.Polyfill.Task
 open Threads.Lib
 
+open FSharp.Data.Adaptive
+
+open Navs.Avalonia
+
+
+type ProfileStore = {
+  profile: aval<UserProfile>
+  pagination: aval<Pagination option>
+  setProfile: UserProfile -> unit
+}
+
+module ProfileStore =
+  let create() =
+    let profile = cval UserProfile.empty
+    let pagination = cval None
+
+    {
+      profile = profile
+      setProfile = profile.setValue
+      pagination = pagination
+    }
+
+type UserThreads = {
+  threads: aval<Post list>
+  setThreads: Post list -> unit
+  prependThread: Post -> unit
+}
+
+module UserThreads =
+  let create() =
+    let threads = cval []
+
+    {
+      threads = threads
+      setThreads = threads.setValue
+      prependThread =
+        fun post -> AVal.mapSet threads (fun posts -> post :: posts)
+    }
+
 
 module PostService =
 

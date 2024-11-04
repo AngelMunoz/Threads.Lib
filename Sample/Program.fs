@@ -2,6 +2,7 @@
 
 open Avalonia
 open Avalonia.Controls
+open Avalonia.Controls.Primitives
 open Avalonia.Data
 
 open NXUI.Desktop
@@ -11,8 +12,10 @@ open FSharp.Data.Adaptive
 
 open Navs
 open Navs.Avalonia
+
 open Threads.Lib
-open Avalonia.Controls.Primitives
+
+open Sample
 
 let navigate url (router: IRouter<Control>) _ _ =
   task {
@@ -28,9 +31,12 @@ let app accessToken () =
 
   let threads = Threads.Create(accessToken)
 
+  let profileStore = ProfileStore.create()
+  let userThreads = UserThreads.create()
+
   let router: IRouter<_> =
     AvaloniaRouter(
-      Samples.Routes.getRoutes threads,
+      Routes.getRoutes(threads, profileStore, userThreads),
       splash = (fun _ -> TextBlock().text("Loading..."))
     )
 
@@ -73,9 +79,16 @@ let app accessToken () =
               .opacity(opacity |> AVal.toBinding)
               .transitions(tr)
               .content(
-                Sample.Views.Composer.view(fun newPost ->
-                  printfn $"%A{newPost}"
-                  showComposer.setValue false)
+                Views.Composer.view(fun newPost ->
+                  Async.StartImmediate(
+                    async {
+                      let! newPost = PostService.postThread threads newPost
+
+                      userThreads.prependThread newPost
+
+                      showComposer.setValue false
+                    }
+                  ))
               ),
             RouterOutlet()
               .router(router)

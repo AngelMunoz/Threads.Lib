@@ -110,62 +110,64 @@ module Profile =
       )
 
 
-  let page (threads: ThreadsClient) ctx _ = async {
-    let! token = Async.CancellationToken
+  let page
+    (threads: ThreadsClient, profile: ProfileStore, userThreads: UserThreads)
+    ctx
+    _
+    =
+    async {
+      let! token = Async.CancellationToken
 
-    let loadProfile = ProfileService.loadProfile threads
-    let loadUserThreads = PostService.loadUserThreads threads
-    let postThread = PostService.postThread threads
+      let loadProfile = ProfileService.loadProfile threads
+      let loadUserThreads = PostService.loadUserThreads threads
 
-    let status = cval(Loading)
-
-    let profile = cval(UserProfile.empty)
-    let mediaPosts = cval([])
-    let pagination = cval(None)
+      let status = cval(Loading)
+      let pagination = cval(None)
 
 
-    Async.StartImmediate(
-      async {
-        let! profileData = loadProfile()
-        profile.setValue profileData
-        status.setValue Idle
-      },
-      token
-    )
 
-    Async.StartImmediate(
-      async {
-        let! (posts, page) = loadUserThreads()
-        mediaPosts.setValue posts
-        pagination.setValue(Some page)
-      },
-      token
-    )
+      Async.StartImmediate(
+        async {
+          let! profileData = loadProfile()
+          profile.setProfile profileData
+          status.setValue Idle
+        },
+        token
+      )
 
-    let content =
-      adaptive {
-        match! status with
-        | Loading -> return loadingScreen()
-        | Idle ->
-          let! profile = profile
+      Async.StartImmediate(
+        async {
+          let! (posts, page) = loadUserThreads()
+          userThreads.setThreads posts
+          pagination.setValue(Some page)
+        },
+        token
+      )
 
-          return
-            DockPanel()
-              .lastChildFill(true)
-              .children(
-                (profileSection profile).DockTop().margin(0., 0., 0., 8.),
-                ScrollViewer()
-                  .DockTop()
-                  .content(
-                    ItemsControl()
-                      .itemsSource(mediaPosts |> AVal.toBinding)
-                      .itemTemplate(
-                        FuncDataTemplate<Post>(fun post _ -> postCard post)
-                      )
-                  )
-              )
-      }
-      |> AVal.toBinding
+      let content =
+        adaptive {
+          match! status with
+          | Loading -> return loadingScreen()
+          | Idle ->
+            let! profile = profile.profile
 
-    return UserControl().content(content)
-  }
+            return
+              DockPanel()
+                .lastChildFill(true)
+                .children(
+                  (profileSection profile).DockTop().margin(0., 0., 0., 8.),
+                  ScrollViewer()
+                    .DockTop()
+                    .content(
+                      ItemsControl()
+                        .itemsSource(userThreads.threads |> AVal.toBinding)
+                        .itemTemplate(
+                          FuncDataTemplate<Post>(fun post _ -> postCard post)
+                        )
+                    )
+                )
+        }
+        |> AVal.toBinding
+
+      return UserControl().content(content)
+    }
