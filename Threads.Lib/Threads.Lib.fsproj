@@ -10,6 +10,7 @@
     <FsDocsLicenseLink>https://github.com/AngelMunoz/Threads.Lib/blob/main/LICENSE</FsDocsLicenseLink>
     <FsDocsReleaseNotesLink>https://github.com/AngelMunoz/Threads.Lib/blob/main/CHANGELOG.md</FsDocsReleaseNotesLink>
     <PackageProjectUrl>https://AngelMunoz.github.io/Threads.Lib</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <ChangelogFile>../CHANGELOG.md</ChangelogFile>
   </PropertyGroup>
   <ItemGroup>
@@ -38,5 +39,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    <None Include="../README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 </Project>
