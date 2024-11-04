@@ -16,6 +16,8 @@ open Navs.Avalonia
 open Threads.Lib
 
 open Sample
+open Sample.Services
+open Sample.Services.Threads
 
 let navigate url (router: IRouter<Control>) _ _ =
   task {
@@ -27,40 +29,42 @@ let navigate url (router: IRouter<Control>) _ _ =
   }
   |> ignore
 
+let onPostThread (store: UserThreadsStore) (postParams: PostParameters) = async {
+  try
+    do! store.postThread postParams
+    return Ok()
+  with _ ->
+    return Error "Failed to post"
+}
+
 let app accessToken () =
 
   let threads = Threads.Create(accessToken)
 
-  let profileStore = ProfileStore.create()
-  let userThreads = UserThreads.create()
+  let threadsService = ThreadsService.create(threads)
+
+  let profileStore = ProfileStore.create(threadsService)
+  let threadsStore = UserThreadsStore.create(threadsService)
 
   let router: IRouter<_> =
     AvaloniaRouter(
-      Routes.getRoutes(threads, profileStore, userThreads),
+      Routes.getRoutes(profileStore, threadsStore),
       splash = (fun _ -> TextBlock().text("Loading..."))
     )
 
   let showComposer = cval false
-  let opacity = showComposer |> AVal.map(fun x -> if x then 1.0 else 0.0)
-  let tr = Animation.Transitions()
-
-  tr.Add(
-    Animation.DoubleTransition(
-      Property = Control.OpacityProperty,
-      Duration = TimeSpan.FromMilliseconds(250),
-      Easing = Animation.Easings.ElasticEaseInOut()
-    )
-  )
 
   let window =
     Window()
+      .minWidth(420)
+      .minHeight(250)
       .content(
         DockPanel()
-          .lastChildFill(true)
           .children(
             StackPanel()
               .DockTop()
               .OrientationHorizontal()
+              .margin(8)
               .spacing(8)
               .children(
                 Button()
@@ -71,33 +75,17 @@ let app accessToken () =
                   .OnClickHandler(navigate $"/threads" router),
                 ToggleButton()
                   .content("New Post")
-                  .OnClickHandler(fun _ _ -> showComposer.setValue true)
+                  .OnIsCheckedChangedHandler(fun sender args ->
+                    sender.IsChecked
+                    |> Option.ofNullable
+                    |> Option.defaultValue false
+                    |> showComposer.setValue)
               ),
             UserControl()
-              .DockTop()
+              .DockBottom()
               .isVisible(showComposer |> AVal.toBinding)
-              .opacity(opacity |> AVal.toBinding)
-              .transitions(tr)
-              .content(
-                Views.Composer.view(fun newPost ->
-                  Async.StartImmediate(
-                    async {
-                      let! newPost = PostService.postThread threads newPost
-
-                      userThreads.prependThread newPost
-
-                      showComposer.setValue false
-                    }
-                  ))
-              ),
-            RouterOutlet()
-              .router(router)
-              .transitions(tr)
-              .opacity(
-                opacity
-                |> AVal.map(fun v -> if v = 1. then 0. else 1.)
-                |> AVal.toBinding
-              )
+              .content(Views.Composer.view(onPostThread threadsStore)),
+            RouterOutlet().router(router).padding(12, 24)
           )
       )
       .OnLoadedHandler(navigate "/profile" router)
@@ -112,7 +100,7 @@ let accessToken =
   // meda apps dashboard
   Environment.GetEnvironmentVariable("THREADS_ACCESS_TOKEN")
   |> Option.ofObj
-  |> Option.defaultValue ""
+  |> Option.defaultWith(fun _ -> failwith "access token was not set")
 
 NXUI.Run(app accessToken, "Navs.Avalonia!", Environment.GetCommandLineArgs())
 |> ignore

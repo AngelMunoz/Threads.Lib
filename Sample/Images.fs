@@ -7,6 +7,43 @@ open Flurl.Http
 open SkiaSharp
 open System.IO
 open Avalonia.Media.Imaging
+open Avalonia.Controls
+open Avalonia.Data
+
+type Image with
+
+  member this.asyncSource
+    (binding: IBinding, ?mode: BindingMode, ?priority: BindingPriority)
+    =
+    let mode = defaultArg mode BindingMode.TwoWay
+    let priority = defaultArg priority BindingPriority.LocalValue
+
+    let descriptor =
+      AsyncImageLoader.ImageLoader.SourceProperty
+        .Bind()
+        .WithMode(mode)
+        .WithPriority(priority)
+
+    this[descriptor] <- binding
+    this
+
+  member this.isLoading
+    (binding: IBinding, ?mode: BindingMode, ?priority: BindingPriority)
+    =
+    let mode = defaultArg mode BindingMode.OneWayToSource
+    let priority = defaultArg priority BindingPriority.LocalValue
+
+    let descriptor =
+      AsyncImageLoader.ImageLoader.IsLoadingProperty
+        .Bind()
+        .WithMode(mode)
+        .WithPriority(priority)
+
+    this[descriptor] <- binding
+    this
+
+
+
 
 let cache = ConcurrentDictionary<string, Bitmap>()
 

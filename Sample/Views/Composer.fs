@@ -23,11 +23,25 @@ module Composer =
           | Posts.ReplyAudience.MentionedOnly -> "Mentioned only"
         ))
 
-  let view(onPost: PostParameters -> unit) : Control =
+  let view(onPost: PostParameters -> Async<Result<unit, string>>) : Control =
     let text = cval("")
     let selectedAudience = cval(Posts.ReplyAudience.Everyone)
     let mediaType = cval(Posts.Text)
     let mediaUrl = cval(None)
+    let enableControls = cval true
+    let characterCount = text |> AVal.map _.Length
+
+    let enableButton =
+      (characterCount, enableControls)
+      ||> AVal.map2(fun length enableControls ->
+        length <= 500 && enableControls)
+
+
+    let resetParams() =
+      text.setValue("")
+      selectedAudience.setValue(Posts.ReplyAudience.Everyone)
+      mediaType.setValue(Posts.Text)
+      mediaUrl.setValue(None)
 
     DockPanel()
       .lastChildFill(true)
@@ -39,10 +53,14 @@ module Composer =
           .HorizontalAlignmentStretch()
           .VerticalAlignmentStretch()
           .watermark("What's on your mind?")
+          .minHeight(124)
+          .maxWidth(320)
+          .maxHeight(280)
+          .TextWrappingWrap()
           .DockTop()
           .acceptsReturn(true)
-          .minHeight(124)
           .margin(0, 0, 0, 8)
+          .isEnabled(enableControls |> AVal.toBinding)
           .text(text |> CVal.toBinding),
         DockPanel()
           .HorizontalAlignmentStretch()
@@ -56,16 +74,47 @@ module Composer =
               .VerticalContentAlignmentCenter()
               .HorizontalContentAlignmentCenter()
               .width(64)
+              .isEnabled(enableButton |> AVal.toBinding)
               .OnClickHandler(fun _ _ ->
-                onPost(
-                  {
-                    text = text |> AVal.force
-                    mediaUrl = mediaUrl |> AVal.force
-                    mediaType = mediaType |> AVal.force
-                    audience = selectedAudience |> AVal.force
-                  }
-                )),
+                async {
+                  enableControls.setValue false
+
+                  let result =
+                    onPost(
+                      {
+                        text = text |> AVal.force
+                        mediaUrl = mediaUrl |> AVal.force
+                        mediaType = mediaType |> AVal.force
+                        audience = selectedAudience |> AVal.force
+                      }
+                    )
+
+                  match! result with
+                  | Ok _ -> resetParams()
+                  | Error e -> printfn $"%A{e}"
+
+                  enableControls.setValue true
+                }
+                |> Async.StartImmediate),
+            TextBlock()
+              .DockRight()
+              .foreground(
+                characterCount
+                |> AVal.map(fun count ->
+                  match count with
+                  | count when count > 500 -> Avalonia.Media.Brushes.Red
+                  | count when count > 400 -> Avalonia.Media.Brushes.Orange
+                  | _ -> Avalonia.Media.Brushes.Green)
+                |> AVal.toBinding
+              )
+              .text(
+                characterCount
+                |> AVal.map(fun count -> $"%i{count}/500")
+                |> AVal.toBinding
+              ),
             ComboBox()
+              .DockLeft()
+              .isEnabled(enableControls |> AVal.toBinding)
               .itemsSource(
                 [
                   Posts.ReplyAudience.Everyone
@@ -74,7 +123,6 @@ module Composer =
                 ]
               )
               .itemTemplate(replyAudienceFnTpl)
-              .DockLeft()
               .selectedItem(selectedAudience |> CVal.toBinding)
           )
       )

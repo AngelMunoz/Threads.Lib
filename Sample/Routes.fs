@@ -14,13 +14,8 @@ open Navs.Avalonia
 
 open Threads.Lib
 
-let getRoutes
-  (threads: ThreadsClient, profile: ProfileStore, userThreads: UserThreads)
-  =
-  [
-    Route.define(
-      "profile",
-      "/profile",
-      Profile.page(threads, profile, userThreads)
-    )
-  ]
+open Sample.Services
+
+let getRoutes(profile: ProfileStore, userThreads: UserThreadsStore) = [
+  Route.define("profile", "/profile", Profile.page(profile, userThreads))
+]
