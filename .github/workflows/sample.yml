@@ -25,5 +25,4 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - run: dotnet restore Sample/Sample.fsproj
-      - run: dotnet build Sample/Sample.fsproj -f net8.0 --configuration Release --no-restore
+      - run: dotnet fsi build.fsx -- -p ci:sample

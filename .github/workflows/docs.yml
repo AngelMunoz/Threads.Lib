@@ -25,14 +25,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
       # Restore the local tools
-      - name: Restore tools
-        run: dotnet tool restore
-      # Build the code for the API documentation
-      - name: Build code
-        run: dotnet build -c Release Threads.Lib/Threads.Lib.fsproj
-      # Generate the documentation files
-      - name: Generate the documentation'
-        run: dotnet fsdocs build --properties Configuration=Release
+      - name: Build Docs
+        run: dotnet fsi build.fsx -- -p ci:docs
       # Upload the static files
       - name: Upload documentation
         uses: actions/upload-pages-artifact@v3

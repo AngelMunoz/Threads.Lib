@@ -36,3 +36,7 @@ async {
 - `dotnet run script.fsx` should print the profile response.
 
 For more information, check out the docs at https://angelmunoz.github.io/Threads.Lib/
+
+# Build locally
+
+`dotnet fsi build.fsx -- -p build
