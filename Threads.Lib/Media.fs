@@ -252,7 +252,7 @@ module Media =
     let! response =
 
       baseUrl
-        .AppendPathSegments(threadId, "threads")
+        .AppendPathSegments(threadId)
         .SetQueryParams([ "fields", fields; "access_token", accessToken ])
         .GetAsync()
       |> Async.AwaitTask

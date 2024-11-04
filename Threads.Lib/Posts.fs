@@ -137,13 +137,7 @@ module Posts =
       let! response =
         baseUrl
           .AppendPathSegments(userId, "threads")
-          .SetQueryParams(
-            [
-              yield! postParams
-              "is_carousel_item", "false"
-              "access_token", accessToken
-            ]
-          )
+          .SetQueryParams([ yield! postParams; "access_token", accessToken ])
           .PostAsync()
 
       return! response.GetJsonAsync<IdLike>()
