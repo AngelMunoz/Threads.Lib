@@ -11,7 +11,7 @@
     <FsDocsReleaseNotesLink>https://github.com/AngelMunoz/Threads.Lib/blob/main/CHANGELOG.md</FsDocsReleaseNotesLink>
     <PackageProjectUrl>https://AngelMunoz.github.io/Threads.Lib</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <ChangelogFile>../CHANGELOG.md</ChangelogFile>
+    <ChangelogFile>CHANGELOG.md</ChangelogFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Common.fsi" />
