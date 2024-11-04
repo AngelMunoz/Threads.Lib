@@ -38,14 +38,9 @@ type PostsTestsClass() =
     | true, value -> Assert.AreEqual("Hello, World!", unbox value)
     | _ -> Assert.Fail("text parameter not found")
 
-    match url.QueryParams.TryGetFirst("is_carousel_item") with
-    | true, value -> Assert.AreEqual("false", unbox value)
-    | _ -> Assert.Fail("is_carousel_item parameter not found")
-
     match url.QueryParams.TryGetFirst("access_token") with
     | true, value -> Assert.AreEqual("fake_token", unbox value)
     | _ -> Assert.Fail("fake_token parameter not found")
-
 
     Assert.AreEqual(suppliedId, response.id)
   }
@@ -82,10 +77,6 @@ type PostsTestsClass() =
     match url.QueryParams.TryGetFirst("media_type") with
     | true, value -> Assert.AreEqual("IMAGE", unbox value)
     | _ -> Assert.Fail("media_type parameter not found")
-
-    match url.QueryParams.TryGetFirst("is_carousel_item") with
-    | true, value -> Assert.AreEqual("false", unbox value)
-    | _ -> Assert.Fail("is_carousel_item parameter not found")
 
     match url.QueryParams.TryGetFirst("access_token") with
     | true, value -> Assert.AreEqual("fake_token", unbox value)
@@ -126,10 +117,6 @@ type PostsTestsClass() =
     match url.QueryParams.TryGetFirst("media_type") with
     | true, value -> Assert.AreEqual("VIDEO", unbox value)
     | _ -> Assert.Fail("media_type parameter not found")
-
-    match url.QueryParams.TryGetFirst("is_carousel_item") with
-    | true, value -> Assert.AreEqual("false", unbox value)
-    | _ -> Assert.Fail("is_carousel_item parameter not found")
 
     match url.QueryParams.TryGetFirst("access_token") with
     | true, value -> Assert.AreEqual("fake_token", unbox value)

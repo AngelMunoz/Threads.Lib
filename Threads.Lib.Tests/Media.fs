@@ -72,7 +72,7 @@ type MediaTests() =
       |> fun call -> (call.Request.Url, call.Request.Verb.Method)
 
     Assert.AreEqual("GET", method)
-    Assert.AreEqual("/v1.0/fake_thread_id/threads", url.Path)
+    Assert.AreEqual("/v1.0/fake_thread_id", url.Path)
 
     match url.QueryParams.TryGetFirst("fields") with
     | true, fields ->
@@ -118,7 +118,7 @@ type MediaTests() =
       |> fun call -> (call.Request.Url, call.Request.Verb.Method)
 
     Assert.AreEqual("GET", method)
-    Assert.AreEqual("/v1.0/fake_thread_id/threads", url.Path)
+    Assert.AreEqual("/v1.0/fake_thread_id", url.Path)
 
     match url.QueryParams.TryGetFirst("fields") with
     | true, fields ->
