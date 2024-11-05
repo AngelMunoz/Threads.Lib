@@ -10,177 +10,173 @@ open Threads.Lib
 
 open Sample
 
-module Threads =
+type ThreadsService =
+  abstract member loadProfile: unit -> Async<UserProfile>
 
-  type ThreadsService =
-    abstract member loadProfile: unit -> Async<UserProfile>
+  abstract member fetchUserThreads:
+    ?pagination: Pagination * ?limit: int -> Async<Post list * Pagination>
 
-    abstract member fetchUserThreads:
-      ?pagination: Pagination * ?limit: int -> Async<Post list * Pagination>
+  abstract member postThread: postParams: PostParameters -> Async<Post>
 
-    abstract member postThread: postParams: PostParameters -> Async<Post>
+  abstract member loadThread: id: string -> Async<Post>
 
-    abstract member loadThread: id: string -> Async<Post>
+  abstract member loadUserInsights: DataRange -> Async<Metric list>
 
-    abstract member loadUserInsights: DataRange -> Async<Metric list>
+module ThreadsService =
 
+  let private defaultFetchMediaParams =
+    lazy
+      ([
+        Media.ThreadField.Id
+        Media.ThreadField.Username
+        Media.ThreadField.Text
+        Media.ThreadField.Timestamp
+        Media.ThreadField.MediaUrl
+        Media.ThreadField.MediaType
+        Media.ThreadField.Owner
+        Media.ThreadField.Permalink
+      ])
 
-  module ThreadsService =
+  let private defaultFetchProfileParams =
+    lazy
+      ([
+        Profiles.ProfileField.Id
+        Profiles.ProfileField.Username
+        Profiles.ProfileField.ThreadsBiography
+        Profiles.ProfileField.ThreadsProfilePictureUrl
+      ])
 
-    let defaultFetchMediaParams =
-      lazy
-        ([
-          Media.ThreadField.Id
-          Media.ThreadField.Username
-          Media.ThreadField.Text
-          Media.ThreadField.Timestamp
-          Media.ThreadField.MediaUrl
-          Media.ThreadField.MediaType
-          Media.ThreadField.Owner
-          Media.ThreadField.Permalink
-        ])
+  let create(client: ThreadsClient) =
+    { new ThreadsService with
+        member _.loadProfile() = async {
+          let! token = Async.CancellationToken
 
-    let defaultFetchProfileParams =
-      lazy
-        ([
-          Profiles.ProfileField.Id
-          Profiles.ProfileField.Username
-          Profiles.ProfileField.ThreadsBiography
-          Profiles.ProfileField.ThreadsProfilePictureUrl
-        ])
+          let! response =
+            client.Profile.FetchProfile(
+              "me",
+              defaultFetchProfileParams.Value,
+              token
+            )
+            |> UserProfile.toProfile
 
-    let create(client: ThreadsClient) =
-      { new ThreadsService with
-          member _.loadProfile() = async {
-            let! token = Async.CancellationToken
+          return response
+        }
 
-            let! response =
-              client.Profile.FetchProfile(
-                "me",
-                defaultFetchProfileParams.Value,
-                token
-              )
-              |> UserProfile.toProfile
+        member _.fetchUserThreads(?pagination, ?limit) = async {
+          let! token = Async.CancellationToken
 
-            return response
-          }
+          return!
+            client.Media.FetchThreads(
+              "me",
+              defaultFetchMediaParams.Value,
+              pagination =
+                Cursor [
+                  match limit with
+                  | None -> CursorParam.Limit 10u
+                  | Some limit -> CursorParam.Limit(uint limit)
 
-          member _.fetchUserThreads(?pagination, ?limit) = async {
-            let! token = Async.CancellationToken
-
-            return!
-              client.Media.FetchThreads(
-                "me",
-                defaultFetchMediaParams.Value,
-                pagination =
-                  Cursor [
-                    match limit with
-                    | None -> CursorParam.Limit 10u
-                    | Some limit -> CursorParam.Limit(uint limit)
-
-                    match pagination with
+                  match pagination with
+                  | None -> ()
+                  | Some pagination ->
+                    match pagination.next with
+                    | Some next -> After next
                     | None -> ()
-                    | Some pagination ->
-                      match pagination.next with
-                      | Some next -> After next
-                      | None -> ()
 
-                      match pagination.previous with
-                      | Some previous -> Before previous
-                      | None -> ()
-                  ],
-                cancellationToken = token
-              )
-              |> Post.ofPosts
-          }
-
-
-          member _.postThread postParams = async {
-            let! token = Async.CancellationToken
-
-            let! container =
-              client.Posts.PostContainer(
-                "me",
-                [
-                  Posts.PostParam.MediaType postParams.mediaType
-                  match postParams.mediaType with
-                  | Posts.Image ->
-                    Posts.PostParam.ImageUrl postParams.mediaUrl.Value
-                  | Posts.Video ->
-                    Posts.PostParam.VideoUrl postParams.mediaUrl.Value
-                  | _ -> ()
-                  Posts.PostParam.Text postParams.text
-                  Posts.PostParam.ReplyControl postParams.audience
+                    match pagination.previous with
+                    | Some previous -> Before previous
+                    | None -> ()
                 ],
-                token
-              )
+              cancellationToken = token
+            )
+            |> Post.ofPosts
+        }
 
-            let! postId = client.Posts.PublishPost("me", container, token)
+        member _.postThread postParams = async {
+          let! token = Async.CancellationToken
 
-            return!
-              client.Media.FetchThread(
-                postId.id,
-                defaultFetchMediaParams.Value,
-                token
-              )
-              |> Post.ofPost
-          }
+          let! container =
+            client.Posts.PostContainer(
+              "me",
+              [
+                Posts.PostParam.MediaType postParams.mediaType
+                match postParams.mediaType with
+                | Posts.Image ->
+                  Posts.PostParam.ImageUrl postParams.mediaUrl.Value
+                | Posts.Video ->
+                  Posts.PostParam.VideoUrl postParams.mediaUrl.Value
+                | _ -> ()
+                Posts.PostParam.Text postParams.text
+                Posts.PostParam.ReplyControl postParams.audience
+              ],
+              token
+            )
 
-          member this.loadThread id = async {
-            let! token = Async.CancellationToken
+          let! postId = client.Posts.PublishPost("me", container, token)
 
-            return!
-              client.Media.FetchThread(id, defaultFetchMediaParams.Value, token)
-              |> Post.ofPost
-          }
+          return!
+            client.Media.FetchThread(
+              postId.id,
+              defaultFetchMediaParams.Value,
+              token
+            )
+            |> Post.ofPost
+        }
 
-          member _.loadUserInsights range = async {
-            let! token = Async.CancellationToken
+        member this.loadThread id = async {
+          let! token = Async.CancellationToken
 
-            let insightParams = [
-              match range with
-              | Week -> Insights.Since(DateTimeOffset.Now.AddDays(-7.))
-              | Month -> Insights.Since(DateTimeOffset.Now.AddDays(-30.))
-              | Year ->
-                let targetDate = DateTimeOffset.Now.AddDays(-365.)
+          return!
+            client.Media.FetchThread(id, defaultFetchMediaParams.Value, token)
+            |> Post.ofPost
+        }
 
-                let targetDate =
-                  if
-                    targetDate < DateTimeOffset(
-                      DateOnly(2024, 6, 1),
-                      TimeOnly(0, 0),
-                      TimeSpan.Zero
-                    )
-                  then
-                    DateTimeOffset(
-                      DateOnly(2024, 6, 1),
-                      TimeOnly(0, 0),
-                      TimeSpan.Zero
-                    )
-                  else
-                    targetDate
+        member _.loadUserInsights range = async {
+          let! token = Async.CancellationToken
 
-                Insights.Since(targetDate)
+          let insightParams = [
+            match range with
+            | Week -> Insights.Since(DateTimeOffset.Now.AddDays(-7.))
+            | Month -> Insights.Since(DateTimeOffset.Now.AddDays(-30.))
+            | Year ->
+              let targetDate = DateTimeOffset.Now.AddDays(-365.)
 
-              Insights.Until(DateTimeOffset.Now)
-            ]
+              let targetDate =
+                if
+                  targetDate < DateTimeOffset(
+                    DateOnly(2024, 6, 2),
+                    TimeOnly(0, 0),
+                    TimeSpan.Zero
+                  )
+                then
+                  DateTimeOffset(
+                    DateOnly(2024, 6, 2),
+                    TimeOnly(0, 0),
+                    TimeSpan.Zero
+                  )
+                else
+                  targetDate
 
-            let! response =
-              client.Insights.FetchUserInsights(
-                "me",
-                [
-                  Insights.Views
-                  Insights.Likes
-                  Insights.Replies
-                  Insights.Reposts
-                  Insights.Quotes
-                  Insights.FollowerCount
-                ],
-                insightParams,
-                token
-              )
-              |> Metric.ofMetricResponse
+              Insights.Since(targetDate)
 
-            return response
-          }
-      }
+            Insights.Until(DateTimeOffset.Now)
+          ]
+
+          let! response =
+            client.Insights.FetchUserInsights(
+              "me",
+              [
+                Insights.Views
+                Insights.Likes
+                Insights.Replies
+                Insights.Reposts
+                Insights.Quotes
+                Insights.FollowerCount
+              ],
+              insightParams,
+              token
+            )
+            |> Metric.ofMetricResponse
+
+          return response
+        }
+    }

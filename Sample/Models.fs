@@ -132,6 +132,16 @@ type Metric = {
 
 module Metric =
 
+  let empty = {
+    id = ""
+    name = Insights.Views
+    title = ""
+    description = ""
+    period = Insights.Day
+    totalValue = ValueNone
+    data = List.empty
+  }
+
   let foldMediaMetrics (current: Metric) (next: Insights.MediaMetric) =
     match next with
     | Insights.MediaMetric.Id id -> { current with id = id }
@@ -143,28 +153,16 @@ module Metric =
       }
     | Insights.MediaMetric.Period period -> { current with period = period }
     | Insights.MediaMetric.Values values -> { current with data = values }
-    | Insights.MediaMetric.TotalValue totalValue -> {
-        current with
-            totalValue = ValueSome totalValue
-      }
-    | _ -> current
+    | Insights.MediaMetric.TotalValue totalValue ->
+        {
+          current with
+              totalValue = ValueSome totalValue
+        }
 
   let ofMetricResponse(values: Task<Insights.MetricResponse>) = async {
     let! values = values
 
-    let mapped =
-      values.data
-      |> List.map(
-        List.fold foldMediaMetrics {
-          id = ""
-          name = Insights.Views
-          title = ""
-          description = ""
-          period = Insights.Lifetime
-          totalValue = ValueNone
-          data = List.empty
-        }
-      )
+    let mapped = values.data |> List.map(List.fold foldMediaMetrics empty)
 
     return mapped
   }

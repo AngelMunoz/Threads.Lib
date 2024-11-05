@@ -2,14 +2,61 @@ namespace Sample.Services
 
 open System
 open System.Diagnostics
+open System.Threading.Tasks
+
+open IcedTasks
+open IcedTasks.Polyfill.Async
+open IcedTasks.Polyfill.Task
 
 open Threads.Lib
 open FSharp.Data.Adaptive
 
+open Navs
 open Navs.Avalonia
 
 open Sample
-open Sample.Services.Threads
+open Sample.Services
+open Avalonia.Controls
+
+type AppStore = {
+  isPostComposerVisible: aval<bool>
+  showComposer: bool -> unit
+  navigateTo: string -> Async<Result<unit, string>>
+}
+
+module AppStore =
+  let create
+    (navigateTo:
+      ref<voption<string -> Task<Result<unit, NavigationError<Control>>>>>)
+    =
+    let isComposerVisible = cval false
+
+    {
+      isPostComposerVisible = isComposerVisible
+      showComposer = fun value -> isComposerVisible.setValue value
+      navigateTo =
+        fun url -> async {
+          match navigateTo.Value with
+          | ValueNone ->
+            return Error "Router is not ready to perform navigations"
+          | ValueSome navigateTo ->
+            let! result = navigateTo url
+
+            return
+              result
+              |> Result.mapError(fun e ->
+                match e with
+                | NavigationCancelled -> nameof(NavigationCancelled)
+                | RouteNotFound(url) -> $"Route not found: {url}"
+                | NavigationFailed(message) -> message
+                | CantDeactivate(deactivatedRoute) ->
+                  $"Can't deactivate: {deactivatedRoute}"
+                | CantActivate(activatedRoute) ->
+                  $"Can't activate: {activatedRoute}"
+                | GuardRedirect(redirectTo) -> $"Guard redirect: {redirectTo}")
+        }
+    }
+
 
 type ProfileStore = {
   profile: aval<UserProfile option>
@@ -48,7 +95,6 @@ module ProfileStore =
           )
           |> ignore
     }
-
 
 type UserThreadsStore = {
   loadUserThreads: unit -> Async<unit>
@@ -120,14 +166,12 @@ module UserThreadsStore =
         }
     }
 
-
 type MetricsStore = {
   range: aval<DataRange>
   metrics: aval<Metric list>
   loadMetrics: unit -> Async<unit>
   updateRange: DataRange -> Async<Unit>
 }
-
 
 module MetricsStore =
 

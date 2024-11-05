@@ -74,19 +74,20 @@ module private AdaptiveParams =
 
 module Composer =
 
-  let private onPublisPost (enableControls: cval<bool>) onPost postParams = async {
-    enableControls.setValue false
+  let private onPublishPost(enableControls, onPost) =
+    fun postParams -> async {
+      enableControls false
 
-    do!
-      onPost(AdaptiveParams.toPostParams postParams)
-      |> AsyncResult.map(fun () -> AdaptiveParams.resetParams postParams)
-      |> AsyncResult.teeError(fun err -> printfn "Error: %s" err)
-      |> AsyncResult.ignoreError
+      do!
+        onPost(AdaptiveParams.toPostParams postParams)
+        |> AsyncResult.map(fun () -> AdaptiveParams.resetParams postParams)
+        |> AsyncResult.teeError(fun err -> printfn "Error: %s" err)
+        |> AsyncResult.ignoreError
 
-    enableControls.setValue true
-  }
+      enableControls true
+    }
 
-  let private replyAudienceFnTpl: FuncDataTemplate<Posts.ReplyAudience> =
+  let private replyAudienceFnTpl =
     FuncDataTemplate<Posts.ReplyAudience>(fun audience _ ->
       ComboBoxItem()
         .content(
@@ -96,7 +97,7 @@ module Composer =
           | Posts.ReplyAudience.MentionedOnly -> "Mentioned only"
         ))
 
-  let replyAudienceSelect(enableControls, audience) =
+  let private replyAudienceSelect(enableControls, audience) =
     ComboBox()
       .isEnabled(enableControls |> AVal.toBinding)
       .itemsSource(
@@ -109,33 +110,29 @@ module Composer =
       .itemTemplate(replyAudienceFnTpl)
       .selectedItem(audience |> CVal.toBinding)
 
-  let private composerTextBox
-    (enableControls: aval<bool>, text: cval<string>)
-    : Control =
+  let private composerTextBox(enableControls, text) =
     TextBox()
       .StyleAsComposerTextBox()
       .watermark("What's on your mind?")
       .isEnabled(enableControls |> AVal.toBinding)
       .text(text |> CVal.toBinding)
 
-  let private publishPostButton(enableButton: aval<bool>, onClick) =
+  let private publishPostButton(enableButton, onClick) =
     Button()
       .StyleAsComposerButton()
       .content("Post")
       .isEnabled(enableButton |> AVal.toBinding)
       .OnClickHandler(fun _ _ -> onClick())
 
-  let composerCharacterCounter(characterCount) =
+  let private composerCharacterCounter(characterCount) =
 
-    let foreground = adaptive {
-      let! count = characterCount
-
-      return
-        match count with
+    let foreground =
+      characterCount
+      |> AVal.map (function
         | count when count > 500 -> Avalonia.Media.Brushes.Red
         | count when count > 400 -> Avalonia.Media.Brushes.Orange
-        | _ -> Avalonia.Media.Brushes.Green
-    }
+        | count when count > 300 -> Avalonia.Media.Brushes.Yellow
+        | _ -> Avalonia.Media.Brushes.Green)
 
     TextBlock()
       .StyleAsComposerCounter()
@@ -146,7 +143,7 @@ module Composer =
         |> AVal.toBinding
       )
 
-  let view(onPost: PostParameters -> Async<Result<unit, string>>) : Control =
+  let view(onPost) : Control =
     let postParams = {
       text = cval ""
       mediaUrl = cval None
@@ -154,15 +151,15 @@ module Composer =
       audience = cval Posts.ReplyAudience.Everyone
     }
 
-    let characterCount = postParams.text |> AVal.map _.Length
     let enableControls = cval true
+    let characterCount = postParams.text |> AVal.map _.Length
+
+    let onPublisPost = onPublishPost(enableControls.setValue, onPost)
 
     let enableButton =
       (characterCount, enableControls)
       ||> AVal.map2(fun length enableControls ->
         length <= 500 && enableControls)
-
-    let onPublisPost = onPublisPost enableControls onPost
 
     DockPanel()
       .StyleAsComposer()

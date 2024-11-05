@@ -56,15 +56,28 @@ module private ProfileStyles =
 
       this.transitions(transitions)
 
-
+  type TextBlock with
+    member this.StyleAsLoadingScreen() =
+      this
+        .HorizontalAlignmentCenter()
+        .VerticalAlignmentCenter()
+        .padding(8.)
+        .fontSize(24)
 
 module Profile =
 
   type PageStatus =
     | Loading
     | Idle
+    | Error of string
 
-  let loadingScreen() : Control = TextBlock().text("Loading...")
+  let loadingScreen(error: string option) : Control =
+    let content =
+      match error with
+      | Some e -> $"Failed to load profile and threads: {e} "
+      | None -> "Loading..."
+
+    TextBlock().StyleAsLoadingScreen().text(content)
 
   let profilePicture(source: aval<string>) =
     let pfpSize = 64
@@ -137,50 +150,57 @@ module Profile =
 
   let private postCardTpl = FuncDataTemplate<Post>(fun post _ -> postCard post)
 
-  let private threadList(threadsList: IBinding) =
+  let private threadList(threadsList) =
     ScrollViewer()
       .content(
-        ItemsControl().itemsSource(threadsList).itemTemplate(postCardTpl)
+        ItemsControl()
+          .itemsSource(threadsList |> AVal.toBinding)
+          .itemTemplate(postCardTpl)
       )
 
-  let page (profileStore: ProfileStore, userThreads: UserThreadsStore) ctx _ = async {
-    let! token = Async.CancellationToken
-
-    let status = cval(Loading)
-
-    let profile =
-      profileStore.profile |> AVal.map(fun p -> defaultArg p UserProfile.empty)
-
-    let threadsList = userThreads.userThreads |> AVal.toBinding
-
+  let private initStores(profileStore, userThreads, onSetUp, token) =
     Async.StartImmediate(
       async {
-        do!
-          Async.Parallel(
-            [ profileStore.loadProfile(); userThreads.loadUserThreads() ]
-          )
-          |> Async.Ignore
+        try
+          do!
+            Async.Parallel(
+              [ profileStore.loadProfile(); userThreads.loadUserThreads() ]
+            )
+            |> Async.Ignore
 
-        status.setValue(Idle)
+          onSetUp(Idle)
+        with _ ->
+          onSetUp(Error "Failed to load profile and threads")
       },
       token
     )
 
-    let content =
-      adaptive {
-        match! status with
-        | Loading -> return loadingScreen()
-        | Idle ->
-          return
-            DockPanel()
-              .children(
-                profileSection(profile, profileStore.navigateToProfile)
-                  .DockTop()
-                  .margin(0., 0., 0., 8.),
-                threadList(threadsList).DockTop()
-              )
-      }
-      |> AVal.toBinding
+  let page (profileStore: ProfileStore, userThreads: UserThreadsStore) ctx _ = async {
+    let! token = Async.CancellationToken
+    let status = cval(Loading)
 
-    return UserControl().content(content)
+    initStores(profileStore, userThreads, status.setValue, token)
+
+    let profile =
+      profileStore.profile |> AVal.map(fun p -> defaultArg p UserProfile.empty)
+
+    return
+      UserControl()
+        .content(
+          adaptive {
+            match! status with
+            | Loading -> return loadingScreen(None)
+            | Error e -> return loadingScreen(Some e)
+            | Idle ->
+              return
+                DockPanel()
+                  .children(
+                    profileSection(profile, profileStore.navigateToProfile)
+                      .DockTop()
+                      .margin(0., 0., 0., 8.),
+                    threadList(userThreads.userThreads).DockTop()
+                  )
+          }
+          |> AVal.toBinding
+        )
   }
