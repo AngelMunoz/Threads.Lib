@@ -2,6 +2,11 @@
 
 # Unreleased
 
+## 1.0.0-beta-002 - 2024-11-05
+
+### Fixed
+- Fix insights requests parameter names and serialization issues
+
 ## 1.0.0-beta-001 - 2024-11-04
 
 ### Added
