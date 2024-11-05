@@ -118,3 +118,59 @@ type PostParameters = {
   mediaType: Posts.MediaType
   audience: Posts.ReplyAudience
 }
+
+
+type Metric = {
+  id: string
+  name: Insights.Metric
+  title: string
+  description: string
+  period: Insights.Period
+  totalValue: uint voption
+  data: Insights.MetricValue list
+}
+
+module Metric =
+
+  let foldMediaMetrics (current: Metric) (next: Insights.MediaMetric) =
+    match next with
+    | Insights.MediaMetric.Id id -> { current with id = id }
+    | Insights.MediaMetric.Name name -> { current with name = name }
+    | Insights.MediaMetric.Title title -> { current with title = title }
+    | Insights.MediaMetric.Description description -> {
+        current with
+            description = description
+      }
+    | Insights.MediaMetric.Period period -> { current with period = period }
+    | Insights.MediaMetric.Values values -> { current with data = values }
+    | Insights.MediaMetric.TotalValue totalValue -> {
+        current with
+            totalValue = ValueSome totalValue
+      }
+    | _ -> current
+
+  let ofMetricResponse(values: Task<Insights.MetricResponse>) = async {
+    let! values = values
+
+    let mapped =
+      values.data
+      |> List.map(
+        List.fold foldMediaMetrics {
+          id = ""
+          name = Insights.Views
+          title = ""
+          description = ""
+          period = Insights.Lifetime
+          totalValue = ValueNone
+          data = List.empty
+        }
+      )
+
+    return mapped
+  }
+
+[<Struct>]
+type DataRange =
+  | Week
+  | Month
+  | Year

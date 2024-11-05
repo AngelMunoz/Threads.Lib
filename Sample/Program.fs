@@ -45,10 +45,11 @@ let app accessToken () =
 
   let profileStore = ProfileStore.create(threadsService)
   let threadsStore = UserThreadsStore.create(threadsService)
+  let metricsStore = MetricsStore.create(threadsService)
 
   let router: IRouter<_> =
     AvaloniaRouter(
-      Routes.getRoutes(profileStore, threadsStore),
+      Routes.getRoutes(profileStore, threadsStore, metricsStore),
       splash = (fun _ -> TextBlock().text("Loading..."))
     )
 
@@ -71,8 +72,8 @@ let app accessToken () =
                   .content("My Profile")
                   .OnClickHandler(navigate "/profile" router),
                 Button()
-                  .content("My Threads")
-                  .OnClickHandler(navigate $"/threads" router),
+                  .content("My Metrics")
+                  .OnClickHandler(navigate $"/metrics" router),
                 ToggleButton()
                   .content("New Post")
                   .OnIsCheckedChangedHandler(fun sender args ->

@@ -22,6 +22,8 @@ module Threads =
 
     abstract member loadThread: id: string -> Async<Post>
 
+    abstract member loadUserInsights: DataRange -> Async<Metric list>
+
 
   module ThreadsService =
 
@@ -130,5 +132,55 @@ module Threads =
             return!
               client.Media.FetchThread(id, defaultFetchMediaParams.Value, token)
               |> Post.ofPost
+          }
+
+          member _.loadUserInsights range = async {
+            let! token = Async.CancellationToken
+
+            let insightParams = [
+              match range with
+              | Week -> Insights.Since(DateTimeOffset.Now.AddDays(-7.))
+              | Month -> Insights.Since(DateTimeOffset.Now.AddDays(-30.))
+              | Year ->
+                let targetDate = DateTimeOffset.Now.AddDays(-365.)
+
+                let targetDate =
+                  if
+                    targetDate < DateTimeOffset(
+                      DateOnly(2024, 6, 1),
+                      TimeOnly(0, 0),
+                      TimeSpan.Zero
+                    )
+                  then
+                    DateTimeOffset(
+                      DateOnly(2024, 6, 1),
+                      TimeOnly(0, 0),
+                      TimeSpan.Zero
+                    )
+                  else
+                    targetDate
+
+                Insights.Since(targetDate)
+
+              Insights.Until(DateTimeOffset.Now)
+            ]
+
+            let! response =
+              client.Insights.FetchUserInsights(
+                "me",
+                [
+                  Insights.Views
+                  Insights.Likes
+                  Insights.Replies
+                  Insights.Reposts
+                  Insights.Quotes
+                  Insights.FollowerCount
+                ],
+                insightParams,
+                token
+              )
+              |> Metric.ofMetricResponse
+
+            return response
           }
       }

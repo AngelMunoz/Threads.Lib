@@ -119,3 +119,37 @@ module UserThreadsStore =
             return ()
         }
     }
+
+
+type MetricsStore = {
+  range: aval<DataRange>
+  metrics: aval<Metric list>
+  loadMetrics: unit -> Async<unit>
+  updateRange: DataRange -> Async<Unit>
+}
+
+
+module MetricsStore =
+
+  let create(threads: ThreadsService) =
+    let metrics = cval []
+    let range = cval Week
+
+    {
+      metrics = metrics
+      range = range
+      loadMetrics =
+        fun () -> async {
+          let range = range |> AVal.force
+          let! foundMetrics = threads.loadUserInsights range
+          foundMetrics |> metrics.setValue
+          return ()
+        }
+      updateRange =
+        fun newRange -> async {
+          let! foundMetrics = threads.loadUserInsights newRange
+          foundMetrics |> metrics.setValue
+          range.setValue newRange
+          return ()
+        }
+    }

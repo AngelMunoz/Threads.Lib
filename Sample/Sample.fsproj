@@ -7,13 +7,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Extensions.fs" />
-    <Compile Include="Images.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="Services/Threads.fs" />
-    <Compile Include="Services\Stores.fs" />
+    <Compile Include="Services/Stores.fs" />
     <Compile Include="Views/Composer.fs" />
     <Compile Include="Views/Profile.fs" />
-    <Compile Include="Views/Threads.fs" />
+    <Compile Include="Views/Metrics.fs" />
     <Compile Include="Routes.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
