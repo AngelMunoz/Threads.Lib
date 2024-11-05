@@ -46,18 +46,20 @@ module Insights =
       | Reposts -> "reposts"
       | Quotes -> "quotes"
       | Shares -> "shares"
-      | FollowerCount -> "follower_count"
+      | FollowerCount -> "followers_count"
       | FollowerDemographics -> "follower_demographics"
 
     let Decode: Decoder<Metric> =
       fun path jsonValue ->
-        match unbox<string> jsonValue with
+        match jsonValue.ToString() with
         | "views" -> Ok Views
         | "likes" -> Ok Likes
         | "replies" -> Ok Replies
         | "reposts" -> Ok Reposts
         | "quotes" -> Ok Quotes
         | "shares" -> Ok Shares
+        | "followers_count" -> Ok FollowerCount
+        | "follower_demographics" -> Ok FollowerDemographics
         | _ -> (path, BadPrimitive("a valid metric", jsonValue)) |> Error
 
   [<Struct>]
@@ -68,7 +70,7 @@ module Insights =
   module Period =
     let Decode: Decoder<Period> =
       fun path jsonValue ->
-        match unbox<string> jsonValue with
+        match jsonValue.ToString() with
         | "lifetime" -> Ok Lifetime
         | "day" -> Ok Day
         | _ -> (path, BadPrimitive("a valid period", jsonValue)) |> Error
@@ -84,7 +86,7 @@ module Insights =
       Decode.object(fun get -> {
         value = get.Required.Field "value" Decode.uint32
         endTime =
-          match get.Optional.Field "end_time" Decode.timestamp with
+          match get.Optional.Field "end_time" Decode.datetimeOffset with
           | Some v -> ValueSome v
           | None -> ValueNone
       })
@@ -102,7 +104,7 @@ module Insights =
   module MediaMetric =
 
     let decodeTotalValue: Decoder<uint> =
-      Decode.object(fun get -> get.Required.Field "total_value" Decode.uint32)
+      Decode.object(fun get -> get.Required.Field "value" Decode.uint32)
 
     let Decode: Decoder<MediaMetric list> =
       Decode.object(fun get -> [
