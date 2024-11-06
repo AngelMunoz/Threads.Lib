@@ -37,7 +37,7 @@ open Threads.Lib.Profile
 let accessToken = "YOUR_ACCESS_TOKEN"
 let client = Threads.Create(accessToken)
 
-async {
+task {
   let! (response: ProfileValue seq) =
     threads.Profile.FetchProfile(
       profileId = "me",
@@ -58,29 +58,34 @@ async {
       ]
     *)
 }
+|> Async.AwaitTask
 // Note that this is just for the F# scripts environment. Projects usually don't have to call this.
 |> Async.RunSynchronously
 ```
 
-> ***NOTE***: The profileId "me" is a special keyword that represents the current user's profile. In order to
+> **_NOTE_**: The profileId "me" is a special keyword that represents the current user's profile. In order to
 > fetch another user's profile, you will need to replace "me" with the user's id.
 
 And just like that you now have the token owner's profile information.
 
 In general the Library contains 5 major services that correspond to the majority of the Threads Web API.
 
-- MediaService -  `client.Media.*` - https://developers.facebook.com/docs/threads/threads-media
+- MediaService - `client.Media.*` - https://developers.facebook.com/docs/threads/threads-media
 
-    This service is used to pull down what is knon as "media" in the API language, however for users "post" would be a more familiar term.
-- ProfileService -  `client.Profile.*` - https://developers.facebook.com/docs/threads/threads-profiles
+  This service is used to pull down what is knon as "media" in the API language, however for users "post" would be a more familiar term.
 
-    This service is used to pull down profile information for a user.
-- PostService -  `client.Post.*` - https://developers.facebook.com/docs/threads/posts
+- ProfileService - `client.Profile.*` - https://developers.facebook.com/docs/threads/threads-profiles
 
-    This service is used to generate "containers" which are objects that envelop the contents of a "post" or "media" object for futher publication to the threads web api.
-- ReplyManagementService -  `client.ReplyManagement.*` - https://developers.facebook.com/docs/threads/reply-management
+  This service is used to pull down profile information for a user.
 
-    This service is used to manage replies and conversations (top level and nested replies connected to a post)
-- InsightsService -  `client.Insights.*` - https://developers.facebook.com/docs/threads/insights
+- PostService - `client.Post.*` - https://developers.facebook.com/docs/threads/posts
 
-    This service is used to pull down insights for a user or a post, it contains metrics like the number of views, likes, comments, etc.
+  This service is used to generate "containers" which are objects that envelop the contents of a "post" or "media" object for futher publication to the threads web api.
+
+- ReplyManagementService - `client.ReplyManagement.*` - https://developers.facebook.com/docs/threads/reply-management
+
+  This service is used to manage replies and conversations (top level and nested replies connected to a post)
+
+- InsightsService - `client.Insights.*` - https://developers.facebook.com/docs/threads/insights
+
+  This service is used to pull down insights for a user or a post, it contains metrics like the number of views, likes, comments, etc.
